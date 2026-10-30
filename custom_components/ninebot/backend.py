@@ -149,8 +149,11 @@ class NinecliBackend:
 class RegionalBackend(NinecliBackend):
     """Regional sessions only advertise reads verified on that service.
 
-    Travel is not verified on fra, so it is never scheduled. Status comes from
-    vehicle-dynamic-data on the vehicle host (verified 2026-10-30).
+    Status comes from vehicle-dynamic-data on the vehicle host and monthly
+    travel from the app API gateway (both verified 2026-10-30). Ride pages and
+    trip details stay unavailable until their EU host is known.
     """
 
-    endpoints = frozenset({Endpoint.VEHICLES, Endpoint.STATUS, Endpoint.BATTERY})
+    endpoints = frozenset(
+        {Endpoint.VEHICLES, Endpoint.STATUS, Endpoint.BATTERY, Endpoint.TRAVEL}
+    )

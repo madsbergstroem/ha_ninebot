@@ -42,6 +42,7 @@ class RegionHosts:
     lines: tuple[str, ...]  # Vehicle-list hosts; the first also serves unknown vehicles.
     country: str
     vehicle: str  # Live status and control, as the EU app uses it (Business-Type 1).
+    oms: str  # App API gateway; travel and account features live here.
 
 
 REGIONS = {
@@ -51,6 +52,7 @@ REGIONS = {
         ("https://steeldust-fra.ninebot.com", "https://ebike-fra.ninebot.com"),
         "DE",
         "https://steeldust-os.ninebot.com",
+        "https://eu-oms-gateway.ninebot.com",
     ),
 }
 
@@ -68,6 +70,7 @@ BATTERY_PATH = "/v6/vehicle/battery-info"
 # desktop-component answers 4101 on fra; the EU app reads vehicle-dynamic-data instead.
 STATUS_PATH = "/v6/vehicle/vehicle-dynamic-data"
 BASIC_INFO_PATH = "/vehicle/vehicle/vehicle-basic-info"
+TRAVEL_GATHER_PATH = "/app-api/travel/v6/travel-gather"
 CONTROL_PATH = "/devices/control/"
 # ninecli action -> (URL suffix, payload operation), as described by ninecli 0.1.7.
 CONTROL = {
@@ -387,13 +390,19 @@ class RegionalClient:
         return config["device_id"], tokens
 
     async def _vehicle_request(
-        self, sn: str, path: str, params: dict[str, Any], *, live: bool = False
+        self,
+        sn: str,
+        path: str,
+        params: dict[str, Any],
+        *,
+        live: bool = False,
+        host: str | None = None,
     ) -> Any:
         """live=True uses the vehicle host with the EU app's headers (Business-Type 1)."""
         async with self._lock:
             device_id, tokens = await self._session_tokens()
             return await self._business(
-                self._hosts.vehicle if live else self._lines.get(sn, self._hosts.lines[0]),
+                host or (self._hosts.vehicle if live else self._lines.get(sn, self._hosts.lines[0])),
                 path,
                 {"access_token": tokens["access_token"], "uid": tokens["business_uid"], **params},
                 device_id,
@@ -541,8 +550,17 @@ class RegionalClient:
         return data
 
     async def async_get_travel(self, sn: str, month: str) -> Any:
-        # The fra travel host is unknown; cn-cbu-gateway serves China only.
-        raise NinebotError(ErrorKind.SERVICE)
+        # The EU app reads monthly rides from the app API gateway, not cn-cbu-gateway.
+        data = await self._vehicle_request(
+            sn,
+            TRAVEL_GATHER_PATH,
+            {"wnumber": sn, "month": month},
+            live=True,
+            host=self._hosts.oms,
+        )
+        if not isinstance(data, dict):
+            raise NinebotError(ErrorKind.PROTOCOL)
+        return data
 
     async def async_get_travel_page(
         self, sn: str, month: str, page: int, *, expected_uid: str

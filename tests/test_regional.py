@@ -162,6 +162,17 @@ async def test_vehicle_lines_route_battery_and_control(tmp_path):
                 },
             },
             HOSTS.vehicle + "/devices/control/engine_start": {"code": 1, "data": {}},
+            HOSTS.oms + "/app-api/travel/v6/travel-gather": {
+                "code": 1,
+                "data": {
+                    "month": "202610",
+                    "total_mileages": "12.5",
+                    "ec": 250,
+                    "times": 2,
+                    "duration": 3600,
+                    "detail": ["0.0"] * 31,
+                },
+            },
         },
     )
     vehicles = await client.async_list_vehicles()
@@ -179,8 +190,9 @@ async def test_vehicle_lines_route_battery_and_control(tmp_path):
     assert service.calls[-1][0] == HOSTS.vehicle + "/devices/control/engine_start"
     with pytest.raises(ValueError):
         await client.async_control("fixture-vehicle-01", "unknown")
-    with pytest.raises(NinebotError):
-        await client.async_get_travel("fixture-vehicle-01", "202610")
+    travel = await client.async_get_travel("fixture-vehicle-01", "202610")
+    assert travel["total_mileages"] == "12.5" and travel["times"] == 2
+    assert service.calls[-1][0] == HOSTS.oms + "/app-api/travel/v6/travel-gather"
 
 
 async def test_missing_session_requires_reauthentication(tmp_path):
@@ -201,11 +213,11 @@ def test_regional_backend_never_schedules_unverified_groups():
     from custom_components.ninebot.raw import Endpoint
 
     assert RegionalBackend.endpoints == frozenset(
-        {Endpoint.VEHICLES, Endpoint.STATUS, Endpoint.BATTERY}
+        {Endpoint.VEHICLES, Endpoint.STATUS, Endpoint.BATTERY, Endpoint.TRAVEL}
     )
     demand = PollingDemand(frozenset({"status", "battery", "travel"}), True, ("entity_status",))
     assert supported_demand(demand, RegionalBackend.endpoints).groups == frozenset(
-        {"status", "battery"}
+        {"status", "battery", "travel"}
     )
     assert supported_demand(demand, frozenset(Endpoint)) is demand
 
