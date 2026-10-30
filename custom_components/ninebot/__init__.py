@@ -22,6 +22,7 @@ from .client import NinecliClient
 from .const import (
     CONF_ACCOUNT,
     CONF_BUSINESS_UID,
+    CONF_REGION,
     CONF_SESSION_KEY,
     DOMAIN,
     PLATFORMS,
@@ -38,6 +39,7 @@ from .identity import IdentityStore
 from .migration import async_migrate
 from .models import VehicleSnapshot
 from .polling_policy import CONF_POLLING_PROFILE, POLLING_OPTIONS, PollingPolicy
+from .regional import REGIONS, RegionalClient
 from .registry import (
     async_configure_debug_entities,
     async_configure_event_entities,
@@ -99,7 +101,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: NinebotConfigEntry) -> b
     if uid != entry.data.get(CONF_BUSINESS_UID):
         raise ConfigEntryAuthFailed("auth")
     ir.async_delete_issue(hass, DOMAIN, f"session_recovery_{entry.entry_id}")
-    client = NinecliClient(manager.path(key), async_get_clientsession(hass))
+    region = entry.data.get(CONF_REGION)
+    client: NinecliClient | RegionalClient = (
+        RegionalClient(manager.path(key), async_get_clientsession(hass), region=region)
+        if region in REGIONS
+        else NinecliClient(manager.path(key), async_get_clientsession(hass))
+    )
     store = ModelStorage(hass, entry.entry_id)
     try:
         await async_prepare_account(hass, uid, history_capacity_mib(entry.options) * 1024 * 1024)

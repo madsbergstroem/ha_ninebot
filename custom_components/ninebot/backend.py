@@ -10,6 +10,7 @@ from .capabilities import CONTROL_ACTIONS
 from .client import NinecliClient
 from .exceptions import ErrorKind, NinebotAuthError, NinebotError
 from .raw import Endpoint, version_metadata
+from .regional import RegionalClient
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,9 @@ class NinecliBackend:
     endpoints = frozenset(Endpoint)
     control_actions = CONTROL_ACTIONS
 
-    def __init__(self, client: NinecliClient, *, expected_uid: str | None = None) -> None:
+    def __init__(
+        self, client: NinecliClient | RegionalClient, *, expected_uid: str | None = None
+    ) -> None:
         self.client = client
         self._expected_uid = expected_uid
         self._metadata_loaded = False

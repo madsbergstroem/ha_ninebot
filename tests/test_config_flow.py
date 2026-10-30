@@ -27,7 +27,7 @@ async def flow_manager(hass, tmp_path):
     hass.config.config_dir = str(tmp_path)
     manager = manager_for(hass)
 
-    async def prepare(account, password):
+    async def prepare(account, password, *region):
         directory = await hass.async_add_executor_job(manager._candidate_dir)
         await hass.async_add_executor_job(
             (directory / "tokens.json").write_text,
@@ -428,9 +428,35 @@ async def test_history_options_expose_capacity_and_keep_explicit_auto_off(
     assert history_capacity_bytes(entry.options) == 256 * 1024 * 1024
 
 
+async def test_europe_region_selects_native_login_and_is_stored(hass, flow_manager):
+    form = await hass.config_entries.flow.async_init("ninebot", context={"source": SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(
+        form["flow_id"],
+        {"account": "user@example.org", "password": "synthetic-password", "region": "fra"},
+    )
+    result = await finish_onboarding(hass, result)
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert flow_manager.async_prepare.call_args.args == (
+        "user@example.org",
+        "synthetic-password",
+        "fra",
+    )
+    assert result["result"].data["region"] == "fra"
+
+
+async def test_china_region_keeps_the_unchanged_ninecli_login(hass, flow_manager):
+    form = await hass.config_entries.flow.async_init("ninebot", context={"source": SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(
+        form["flow_id"], {"account": "fake-account", "password": "synthetic-password"}
+    )
+    result = await finish_onboarding(hass, result)
+    assert flow_manager.async_prepare.call_args.args == ("fake-account", "synthetic-password")
+    assert result["result"].data["region"] == "cn"
+
+
 async def test_password_only_form_and_public_sms_steps_never_send(hass, flow_manager):
     form = await hass.config_entries.flow.async_init("ninebot", context={"source": SOURCE_USER})
-    assert [key.schema for key in form["data_schema"].schema] == ["account", "password"]
+    assert [key.schema for key in form["data_schema"].schema] == ["account", "password", "region"]
     for source in ("sms_account", "sms_code"):
         result = await hass.config_entries.flow.async_init(
             "ninebot", context={"source": source}, data={"account": "fake"}

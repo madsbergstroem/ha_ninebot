@@ -10,13 +10,14 @@ from .client import NinecliClient
 from .coordinator import NinebotCoordinator
 from .event_store import RideEventPipeline
 from .identity import IdentityStore
+from .regional import RegionalClient
 from .session import SessionManager
 from .storage import ModelStorage
 
 
 @dataclass
 class RuntimeData:
-    client: NinecliClient
+    client: NinecliClient | RegionalClient
     coordinator: NinebotCoordinator
     session: SessionManager
     models: ModelStorage

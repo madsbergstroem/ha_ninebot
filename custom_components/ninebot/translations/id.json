@@ -6,7 +6,8 @@
         "description": "Sign in with your account and password, then choose vehicle features. Your password is not saved in integration configuration.",
         "data": {
           "account": "Akun",
-          "password": "Kata sandi"
+          "password": "Kata sandi",
+          "region": "Service region"
         },
         "data_description": {}
       },
@@ -15,7 +16,8 @@
         "description": "The password is used only for this login and is not stored in integration configuration.",
         "data": {
           "account": "Akun",
-          "password": "Kata sandi"
+          "password": "Kata sandi",
+          "region": "Service region"
         },
         "data_description": {}
       },
@@ -24,7 +26,8 @@
         "description": "The password is used only for this login and is not stored in integration configuration.",
         "data": {
           "account": "Akun",
-          "password": "Kata sandi"
+          "password": "Kata sandi",
+          "region": "Service region"
         },
         "data_description": {}
       },
@@ -1236,6 +1239,12 @@
         "balanced": "Seimbang",
         "slower": "Lebih lambat",
         "very_slow": "Sangat lambat"
+      }
+    },
+    "region": {
+      "options": {
+        "cn": "Mainland China",
+        "fra": "Europe (Frankfurt)"
       }
     }
   }

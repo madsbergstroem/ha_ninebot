@@ -74,7 +74,7 @@ def test_public_configuration_is_password_only_and_hides_backend_names():
         content = json.loads(path.read_text())
         for name in ("user", "reauth_confirm", "reconfigure"):
             step = content["config"]["step"][name]
-            assert set(step["data"]) == {"account", "password"}, path.name
+            assert set(step["data"]) == {"account", "password", "region"}, path.name
         assert "ninecli" not in json.dumps({k: content[k] for k in ("config", "options")}).lower()
         fields = list(content["options"]["step"]["init"]["data"])
         assert fields[-1] == "debug_mode"

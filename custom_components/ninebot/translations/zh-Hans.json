@@ -6,7 +6,8 @@
         "description": "使用账号和密码登录，验证后设置车辆功能。密码不会保存在集成配置中。",
         "data": {
           "account": "账号",
-          "password": "密码"
+          "password": "密码",
+          "region": "服务区域"
         },
         "data_description": {}
       },
@@ -15,7 +16,8 @@
         "description": "密码仅用于本次登录验证，不保存到集成配置。",
         "data": {
           "account": "账号",
-          "password": "密码"
+          "password": "密码",
+          "region": "服务区域"
         },
         "data_description": {}
       },
@@ -24,7 +26,8 @@
         "description": "密码仅用于本次登录验证，不保存到集成配置。",
         "data": {
           "account": "账号",
-          "password": "密码"
+          "password": "密码",
+          "region": "服务区域"
         },
         "data_description": {}
       },
@@ -1236,6 +1239,12 @@
         "balanced": "均衡",
         "slower": "更慢",
         "very_slow": "极慢"
+      }
+    },
+    "region": {
+      "options": {
+        "cn": "中国大陆",
+        "fra": "欧洲（法兰克福）"
       }
     }
   }

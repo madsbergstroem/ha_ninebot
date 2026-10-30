@@ -21,6 +21,7 @@ from .adapters import profiles, text
 from .async_utils import async_drain
 from .client import NinecliClient
 from .exceptions import ErrorKind, NinebotError
+from .regional import RegionalClient
 
 type ClientFactory = Callable[[Path, aiohttp.ClientSession], NinecliClient]
 
@@ -274,7 +275,10 @@ class SessionManager:
         private_directory(self.root)
         return Path(tempfile.mkdtemp(prefix=".candidate-", dir=self.root))
 
-    async def async_prepare(self, account: str, password: str) -> Candidate:
+    async def async_prepare(
+        self, account: str, password: str, region: str | None = None
+    ) -> Candidate:
+        """A region selects the native regional client; None keeps ninecli (China)."""
         task = asyncio.create_task(asyncio.to_thread(self._candidate_dir))
         try:
             directory = await async_drain(task)
@@ -283,9 +287,13 @@ class SessionManager:
                 directory = task.result()
                 await finish_io(lambda: shutil.rmtree(directory, True))
             raise
-        client = None
+        client: NinecliClient | RegionalClient | None = None
         try:
-            client = self._factory(directory, self._session)
+            client = (
+                RegionalClient(directory, self._session, region=region)
+                if region
+                else self._factory(directory, self._session)
+            )
             await client.async_login(account, password)
             display = await self._account_display(client)
             vehicles = profiles(await client.async_list_vehicles())
@@ -305,7 +313,7 @@ class SessionManager:
         await finish_io(lambda: shutil.rmtree(candidate.path, True))
 
     @staticmethod
-    async def _account_display(client: NinecliClient) -> AccountDisplay:
+    async def _account_display(client: NinecliClient | RegionalClient) -> AccountDisplay:
         try:
             return AccountDisplay.parse(await client.async_get_account())
         except NinebotError as err:

@@ -45,9 +45,11 @@ from .const import (
     CONF_EVENTS,
     CONF_IDENTITY_SCHEME,
     CONF_POLL_INTERVAL,
+    CONF_REGION,
     CONF_SESSION_KEY,
     DEFAULT_COORDINATES,
     DOMAIN,
+    REGION_CHINA,
 )
 from .exceptions import ErrorKind, NinebotError
 from .history_budget import CONF_BUDGET, MAX_BUDGET, MIN_BUDGET, configured_budget
@@ -61,6 +63,7 @@ from .identity import IDENTITY_VERSION
 from .parsing import number
 from .polling_policy import CONF_POLLING_PROFILE, PRESETS, PollingPolicy
 from .preservation import CONF_PRESERVE
+from .regional import REGIONS
 from .services import resolve_vehicle
 from .session import SMS_LIFETIME, Candidate, SessionManager, SmsChallenge
 
@@ -94,8 +97,13 @@ class NinebotConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._reloading = False
         self._onboarding: Candidate | None = None
         self._onboarding_account: str | None = None
+        self._onboarding_region = REGION_CHINA
         self._onboarding_options: dict[str, Any] = {}
         self._onboarding_timer: Any = None
+
+    def _region(self) -> str:
+        """Entries created before regional support belong to the China service."""
+        return str(self._entry.data.get(CONF_REGION, REGION_CHINA)) if self._entry else REGION_CHINA
 
     def _manager(self) -> SessionManager:
         from . import manager_for
@@ -118,8 +126,12 @@ class NinebotConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not user_input.get(CONF_PASSWORD):
                 errors[CONF_PASSWORD] = "password_required"
                 user_input = None
+            elif user_input.get(CONF_REGION, REGION_CHINA) not in (REGION_CHINA, *REGIONS):
+                errors[CONF_REGION] = "unsupported_platform"
+                user_input = None
         if user_input is not None:
             account = str(user_input[CONF_ACCOUNT]).strip()
+            region = str(user_input.get(CONF_REGION) or self._region())
             manager = self._manager()
             key = self._entry.data[CONF_SESSION_KEY] if self._entry else uuid.uuid4().hex
             async with manager.transaction(key):
@@ -137,8 +149,10 @@ class NinebotConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         # The old runtime may still own this directory. Do not
                         # recover or replace it until HA can unload it safely.
                         raise NinebotError(ErrorKind.BUSY)
+                    # China keeps the unchanged ninecli call; regions add the native client.
+                    regional = (region,) if region in REGIONS else ()
                     candidate = prepared or await manager.async_prepare(
-                        account, str(user_input[CONF_PASSWORD])
+                        account, str(user_input[CONF_PASSWORD]), *regional
                     )
                     if self._entry:
                         expected = self._entry.data.get(CONF_BUSINESS_UID)
@@ -166,6 +180,7 @@ class NinebotConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         self._onboarding = candidate
                         candidate = None
                         self._onboarding_account = account
+                        self._onboarding_region = region
                         self._onboarding_options = {
                             CONF_ESTIMATION: False,
                             CONF_COORDINATES: DEFAULT_COORDINATES,
@@ -191,6 +206,7 @@ class NinebotConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         **(old_data or {}),
                         IDENTITY_VERSION: old_data.get(IDENTITY_VERSION, 0) if old_data else 1,
                         CONF_ACCOUNT: account,
+                        CONF_REGION: region,
                         CONF_BUSINESS_UID: candidate.uid,
                         CONF_SESSION_KEY: key,
                         CONF_IDENTITY_SCHEME: self._entry.data.get(CONF_IDENTITY_SCHEME, "v2")
@@ -320,6 +336,11 @@ class NinebotConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     (vol.Optional if SMS_LOGIN_ENABLED else vol.Required)(
                         CONF_PASSWORD
                     ): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
+                    vol.Optional(CONF_REGION, default=self._region()): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[REGION_CHINA, *REGIONS], translation_key="region"
+                        )
+                    ),
                     **(
                         {
                             vol.Optional("login_method", default="password"): SelectSelector(
@@ -368,7 +389,13 @@ class NinebotConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._onboarding_timer()
                 self._onboarding_timer = None
             return await self._credentials(
-                "user", {CONF_ACCOUNT: self._onboarding_account, **user_input}, candidate
+                "user",
+                {
+                    CONF_ACCOUNT: self._onboarding_account,
+                    CONF_REGION: self._onboarding_region,
+                    **user_input,
+                },
+                candidate,
             )
         return self.async_show_form(
             step_id="features",

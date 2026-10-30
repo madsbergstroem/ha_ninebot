@@ -55,6 +55,7 @@ from .preservation import CONF_PRESERVE, HistoryPreservation
 from .query_broker import Priority, QueryBroker, QueryKey, QueryReceipt
 from .raw import Endpoint, RawLimitError, RawRecord, RawStore, build_record
 from .realtime import RealtimePolling
+from .regional import RegionalClient
 from .ride_archive import ArchiveError
 from .ride_lifecycle import RideLifecycle
 from .travel_observation import MonthObservation
@@ -82,7 +83,7 @@ class NinebotCoordinator(DataUpdateCoordinator[dict[str, VehicleSnapshot]]):
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
-        client: NinecliClient,
+        client: NinecliClient | RegionalClient,
         *,
         backend: NinebotBackend | None = None,
         monotonic: Callable[[], float] | None = None,

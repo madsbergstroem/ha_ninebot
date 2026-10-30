@@ -9,7 +9,7 @@
 - A compatible 64-bit host/container for the pinned runtime dependency. ARMv7/32-bit is unsupported.
 - HACS for the recommended installation. This is a custom integration, not a Supervisor app/add-on or a built-in Core integration.
 
-The current connection has been verified against the Chinese App service; additional service regions require validation.
+The ninecli connection has been verified against the Chinese App service. For an account on the Europe (Frankfurt) service, choose **Europe (Frankfurt)** as the service region when signing in; the integration then connects to the Frankfurt hosts directly, without ninecli. The vehicle list and battery readings work there. Status, ride history and controls are not verified for this region and may stay unavailable.
 
 The current stable release is **v2.0.0**. Back up your Home Assistant configuration and private storage before upgrading.
 
