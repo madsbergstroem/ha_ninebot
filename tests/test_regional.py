@@ -82,7 +82,7 @@ def test_business_success_codes_and_rejections():
 
 
 def test_control_command_is_one_rsa_block():
-    cipher = base64.b64decode(control_cmd("fixture-vehicle-01", "engine_start"))
+    cipher = base64.b64decode(control_cmd("fixture-vehicle-01", "engine_start", "42"))
     assert len(cipher) == 128
 
 
@@ -146,7 +146,10 @@ async def test_vehicle_lines_route_battery_and_control(tmp_path):
                 "code": 1,
                 "data": {"total_mileage": 1361},
             },
-            motor + "/v6/vehicle/battery-info": {"code": 1, "data": {"electricity": 88}},
+            motor + "/v6/vehicle/battery-info": {
+                "code": 1,
+                "data": {"electricity": 88, "battery_list": [{"bms_cycle": "18"}]},
+            },
             HOSTS.vehicle + "/v6/vehicle/vehicle-dynamic-data": {
                 "code": 1,
                 "data": {
@@ -165,7 +168,8 @@ async def test_vehicle_lines_route_battery_and_control(tmp_path):
     assert [vehicle["wnumber"] for vehicle in vehicles] == ["fixture-vehicle-01"]
     assert client.vehicle_discovery_complete is True
     assert vehicles[0]["total_mileage"] == 1361
-    assert await client.async_get_battery("fixture-vehicle-01") == {"electricity": 88}
+    battery = await client.async_get_battery("fixture-vehicle-01")
+    assert battery["electricity"] == 88 and battery["have_bms_cycle_support"] is True
     status = await client.async_get_status("fixture-vehicle-01")
     assert status["sn"] == "fixture-vehicle-01" and status["dump_energy"] == 79
     assert status["loc"] == {"acc": 0, "lock": 1, "lat": "0.0", "lon": "0.0"}

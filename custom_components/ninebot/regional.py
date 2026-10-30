@@ -92,8 +92,14 @@ def passport_sign(path: str, fields: dict[str, str]) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
-def control_cmd(sn: str, operation: str) -> str:
-    payload = {"sn": sn, "operation": operation, "request_time": int(time.time() * 1000)}
+def control_cmd(sn: str, operation: str, uid: str) -> str:
+    """The server reads uid from the decrypted command ("Undefined index: uid" without it)."""
+    payload = {
+        "sn": sn,
+        "operation": operation,
+        "uid": uid,
+        "request_time": int(time.time() * 1000),
+    }
     plain = json.dumps(payload, separators=(",", ":")).encode()
     return crypto.android_b64(crypto._rsa_encrypt(CONTROL_PUBLIC_KEY_PEM, plain))
 
@@ -527,6 +533,11 @@ class RegionalClient:
         data = await self._vehicle_request(sn, BATTERY_PATH, {"wnumber": sn})
         if not isinstance(data, dict):
             raise NinebotError(ErrorKind.PROTOCOL)
+        rows = data.get("battery_list")
+        if "have_bms_cycle_support" not in data and isinstance(rows, list):
+            # fra omits the support flag but reports counts (E125S: 18 at 1361 km).
+            if any(isinstance(r, dict) and str(r.get("bms_cycle", "")).isdigit() for r in rows):
+                data = {**data, "have_bms_cycle_support": True}
         return data
 
     async def async_get_travel(self, sn: str, month: str) -> Any:
@@ -546,7 +557,8 @@ class RegionalClient:
         if action not in CONTROL:
             raise ValueError("Unsupported action")
         suffix, operation = CONTROL[action]
-        cmd = await asyncio.to_thread(control_cmd, sn, operation)
+        _, tokens = await asyncio.to_thread(self._load)
+        cmd = await asyncio.to_thread(control_cmd, sn, operation, str(tokens["business_uid"]))
         await self._vehicle_request(
             sn,
             CONTROL_PATH + suffix,
