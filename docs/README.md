@@ -8,6 +8,7 @@ Documentation for the **2.0 integration**. Start with setup, then enable the his
 |---|---|---|
 | Install, add accounts, entities/options and troubleshoot | [Everyday guide](guide.md) | [安装与日常使用](guide_zh.md) |
 | Synchronize, browse maps/trips, calendar, statistics and recovery | [History and maps](history.md) | [历史行程与地图](history_zh.md) |
+| Add the vehicle status card and its controls | [Vehicle card](history.md#add-the-vehicle-status-card) | [车辆状态卡片](history_zh.md#添加车辆状态卡片) |
 | Upgrade, entity IDs and rollback | [Migration guide](migration.md) | [升级与迁移](migration_zh.md) |
 | Architecture, data lifecycle, security and dependencies | [Architecture](architecture.md) | 英文正文含简中摘要 |
 | Source/test routing and efficient development | [Development](development.md) | 英文正文含简中摘要 |
