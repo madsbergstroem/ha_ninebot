@@ -41,6 +41,7 @@ class RegionHosts:
     business: str
     lines: tuple[str, ...]  # Vehicle-list hosts; the first also serves unknown vehicles.
     country: str
+    vehicle: str  # Live status and control, as the EU app uses it (Business-Type 1).
 
 
 REGIONS = {
@@ -49,6 +50,7 @@ REGIONS = {
         "https://api-jhcx-v6-fra.ninebot.com",
         ("https://steeldust-fra.ninebot.com", "https://ebike-fra.ninebot.com"),
         "DE",
+        "https://steeldust-os.ninebot.com",
     ),
 }
 
@@ -63,7 +65,9 @@ REFRESH_PATH = "/v3/user/refresh"
 BUSINESS_LOGIN_PATH = "/user/user/login"
 VEHICLES_PATH = "/vehicle/binding/my-vehicle"
 BATTERY_PATH = "/v6/vehicle/battery-info"
-STATUS_PATH = "/vehicle/vehicle/desktop-component"
+# desktop-component answers 4101 on fra; the EU app reads vehicle-dynamic-data instead.
+STATUS_PATH = "/v6/vehicle/vehicle-dynamic-data"
+BASIC_INFO_PATH = "/vehicle/vehicle/vehicle-basic-info"
 CONTROL_PATH = "/devices/control/"
 # ninecli action -> (URL suffix, payload operation), as described by ninecli 0.1.7.
 CONTROL = {
@@ -92,6 +96,23 @@ def control_cmd(sn: str, operation: str) -> str:
     payload = {"sn": sn, "operation": operation, "request_time": int(time.time() * 1000)}
     plain = json.dumps(payload, separators=(",", ":")).encode()
     return crypto.android_b64(crypto._rsa_encrypt(CONTROL_PUBLIC_KEY_PEM, plain))
+
+
+def dynamic_status(data: dict[str, Any], sn: str) -> dict[str, Any]:
+    """Present vehicle-dynamic-data in the desktop-component shape the adapters read.
+
+    Same meanings, other names: flat latitude/longitude/acc_status/lock_status
+    become the nested loc object; wnumber is the identity (sn).
+    """
+    status = dict(data)
+    status["sn"] = data.get("wnumber", sn)
+    status["loc"] = {
+        "acc": data.get("acc_status"),
+        "lock": data.get("lock_status"),
+        "lat": data.get("latitude"),
+        "lon": data.get("longitude"),
+    }
+    return status
 
 
 def _inflate(body: bytes, encoding: str | None) -> bytes:
@@ -252,7 +273,12 @@ class RegionalClient:
         return data
 
     def _prepare(
-        self, params: dict[str, Any], device_id: str, token: str | None, business_type: int
+        self,
+        params: dict[str, Any],
+        device_id: str,
+        token: str | None,
+        business_type: int,
+        app_style: bool = False,
     ) -> tuple[bytes, dict, dict[str, str]]:
         now = int(time.time() * 1000)
         inner: dict[str, Any] = dict(
@@ -300,6 +326,16 @@ class RegionalClient:
                     "Rn-Version": "0",
                 }
             )
+        if app_style and token:
+            # Header set of the EU app on the vehicle host (iPhone capture, 2026-10-30).
+            headers.update(
+                {
+                    "Access-Token": token,
+                    "Uid": str(params.get("uid", "")),
+                    "Language": "de",
+                    "Sys-Language": "de-de",
+                }
+            )
         return json.dumps(wire, separators=(",", ":")).encode(), keys, headers
 
     async def _business(
@@ -310,9 +346,10 @@ class RegionalClient:
         device_id: str,
         token: str | None,
         business_type: int = 2,
+        app_style: bool = False,
     ) -> Any:
         wire, keys, headers = await asyncio.to_thread(
-            self._prepare, params, device_id, token, business_type
+            self._prepare, params, device_id, token, business_type, app_style
         )
         body, encoding = await self._post(host + path, wire, headers)
         return await asyncio.to_thread(decode_business, body, keys, encoding)
@@ -343,15 +380,20 @@ class RegionalClient:
             await asyncio.to_thread(self._write, "tokens.json", tokens)
         return config["device_id"], tokens
 
-    async def _vehicle_request(self, sn: str, path: str, params: dict[str, Any]) -> Any:
+    async def _vehicle_request(
+        self, sn: str, path: str, params: dict[str, Any], *, live: bool = False
+    ) -> Any:
+        """live=True uses the vehicle host with the EU app's headers (Business-Type 1)."""
         async with self._lock:
             device_id, tokens = await self._session_tokens()
             return await self._business(
-                self._lines.get(sn, self._hosts.lines[0]),
+                self._hosts.vehicle if live else self._lines.get(sn, self._hosts.lines[0]),
                 path,
                 {"access_token": tokens["access_token"], "uid": tokens["business_uid"], **params},
                 device_id,
                 tokens["access_token"],
+                business_type=1 if live else 2,
+                app_style=live,
             )
 
     # -- NinecliClient surface --------------------------------------------
@@ -445,15 +487,38 @@ class RegionalClient:
                         lines.setdefault(vehicle["wnumber"], host)
             if failure is not None and not found:
                 raise failure
+            for sn, vehicle in found.items():
+                if vehicle.get("total_mileage") is None:
+                    # The list leaves the odometer empty on fra; basic info carries it.
+                    try:
+                        info = await self._business(
+                            self._hosts.vehicle,
+                            BASIC_INFO_PATH,
+                            {
+                                "access_token": tokens["access_token"],
+                                "uid": tokens["business_uid"],
+                                "wnumber": sn,
+                            },
+                            device_id,
+                            tokens["access_token"],
+                            business_type=1,
+                            app_style=True,
+                        )
+                    except NinebotAuthError:
+                        raise
+                    except NinebotError:
+                        continue
+                    if isinstance(info, dict) and info.get("total_mileage") is not None:
+                        vehicle["total_mileage"] = info["total_mileage"]
             self._lines = lines
             self.vehicle_discovery_complete = failure is None
             return list(found.values())
 
     async def async_get_status(self, sn: str) -> Any:
-        data = await self._vehicle_request(sn, STATUS_PATH, {"sn": sn, "wnumber": sn})
+        data = await self._vehicle_request(sn, STATUS_PATH, {"wnumber": sn}, live=True)
         if not isinstance(data, dict):
             raise NinebotError(ErrorKind.PROTOCOL)
-        return data
+        return dynamic_status(data, sn)
 
     async def async_get_status_once(self, sn: str) -> Any:
         return await self.async_get_status(sn)
@@ -483,5 +548,8 @@ class RegionalClient:
         suffix, operation = CONTROL[action]
         cmd = await asyncio.to_thread(control_cmd, sn, operation)
         await self._vehicle_request(
-            sn, CONTROL_PATH + suffix, {"wnumber": sn, "operation": operation, "cmd": cmd}
+            sn,
+            CONTROL_PATH + suffix,
+            {"wnumber": sn, "operation": operation, "cmd": cmd},
+            live=True,
         )

@@ -45,8 +45,8 @@ class FakeService:
         self._keys: list[dict] = []
         prepare = client._prepare
 
-        def capture(params, device_id, token, business_type):
-            wire, keys, headers = prepare(params, device_id, token, business_type)
+        def capture(params, device_id, token, business_type, app_style=False):
+            wire, keys, headers = prepare(params, device_id, token, business_type, app_style)
             self._keys.append(keys)
             return wire, keys, headers
 
@@ -142,20 +142,37 @@ async def test_vehicle_lines_route_battery_and_control(tmp_path):
                 "data": [{"wnumber": "fixture-vehicle-01", "vehicle_type": 81}],
             },
             ebike + "/vehicle/binding/my-vehicle": {"code": 1, "data": []},
+            HOSTS.vehicle + "/vehicle/vehicle/vehicle-basic-info": {
+                "code": 1,
+                "data": {"total_mileage": 1361},
+            },
             motor + "/v6/vehicle/battery-info": {"code": 1, "data": {"electricity": 88}},
-            motor + "/vehicle/vehicle/desktop-component": {"code": 340000, "desc": "4101"},
-            motor + "/devices/control/engine_start": {"code": 1, "data": {}},
+            HOSTS.vehicle + "/v6/vehicle/vehicle-dynamic-data": {
+                "code": 1,
+                "data": {
+                    "wnumber": "fixture-vehicle-01",
+                    "acc_status": 0,
+                    "lock_status": 1,
+                    "latitude": "0.0",
+                    "longitude": "0.0",
+                    "dump_energy": 79,
+                },
+            },
+            HOSTS.vehicle + "/devices/control/engine_start": {"code": 1, "data": {}},
         },
     )
     vehicles = await client.async_list_vehicles()
     assert [vehicle["wnumber"] for vehicle in vehicles] == ["fixture-vehicle-01"]
     assert client.vehicle_discovery_complete is True
+    assert vehicles[0]["total_mileage"] == 1361
     assert await client.async_get_battery("fixture-vehicle-01") == {"electricity": 88}
-    with pytest.raises(NinebotError) as status:
-        await client.async_get_status("fixture-vehicle-01")
-    assert status.value.kind is ErrorKind.SERVICE
+    status = await client.async_get_status("fixture-vehicle-01")
+    assert status["sn"] == "fixture-vehicle-01" and status["dump_energy"] == 79
+    assert status["loc"] == {"acc": 0, "lock": 1, "lat": "0.0", "lon": "0.0"}
+    live = service.calls[-1][1]
+    assert live["Business-Type"] == "1" and live["Uid"] == "42" and live["Access-Token"] == "AT"
     await client.async_control("fixture-vehicle-01", "engine/start")
-    assert service.calls[-1][0] == motor + "/devices/control/engine_start"
+    assert service.calls[-1][0] == HOSTS.vehicle + "/devices/control/engine_start"
     with pytest.raises(ValueError):
         await client.async_control("fixture-vehicle-01", "unknown")
     with pytest.raises(NinebotError):
@@ -179,9 +196,13 @@ def test_regional_backend_never_schedules_unverified_groups():
     from custom_components.ninebot.demand import PollingDemand
     from custom_components.ninebot.raw import Endpoint
 
-    assert RegionalBackend.endpoints == frozenset({Endpoint.VEHICLES, Endpoint.BATTERY})
+    assert RegionalBackend.endpoints == frozenset(
+        {Endpoint.VEHICLES, Endpoint.STATUS, Endpoint.BATTERY}
+    )
     demand = PollingDemand(frozenset({"status", "battery", "travel"}), True, ("entity_status",))
-    assert supported_demand(demand, RegionalBackend.endpoints).groups == frozenset({"battery"})
+    assert supported_demand(demand, RegionalBackend.endpoints).groups == frozenset(
+        {"status", "battery"}
+    )
     assert supported_demand(demand, frozenset(Endpoint)) is demand
 
 
@@ -195,10 +216,10 @@ def test_regional_soc_and_charging_use_the_battery_read():
 
     assert regional_sensors(frozenset(Endpoint)) is SENSORS
     assert regional_descriptions(frozenset(Endpoint)) is DESCRIPTIONS
-    soc = next(d for d in regional_sensors(RegionalBackend.endpoints) if d.key == "battery")
+    assert regional_sensors(RegionalBackend.endpoints) is SENSORS
+    without_status = frozenset({Endpoint.VEHICLES, Endpoint.BATTERY})
+    soc = next(d for d in regional_sensors(without_status) if d.key == "battery")
     snapshot = SimpleNamespace(battery=SimpleNamespace(observations={"electricity": 88}))
     assert soc.group == "battery" and soc.value(snapshot) == 88
-    charging = next(
-        d for d in regional_descriptions(RegionalBackend.endpoints) if d.key == "charging"
-    )
+    charging = next(d for d in regional_descriptions(without_status) if d.key == "charging")
     assert charging.group == "battery" and charging.field == "charging"

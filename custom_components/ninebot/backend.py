@@ -149,8 +149,8 @@ class NinecliBackend:
 class RegionalBackend(NinecliBackend):
     """Regional sessions only advertise reads verified on that service.
 
-    Status (desktop-component) and travel are not verified on fra, so they are
-    never scheduled; battery polling must not wait for a status recovery.
+    Travel is not verified on fra, so it is never scheduled. Status comes from
+    vehicle-dynamic-data on the vehicle host (verified 2026-10-30).
     """
 
-    endpoints = frozenset({Endpoint.VEHICLES, Endpoint.BATTERY})
+    endpoints = frozenset({Endpoint.VEHICLES, Endpoint.STATUS, Endpoint.BATTERY})
