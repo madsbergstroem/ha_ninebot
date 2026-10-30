@@ -183,3 +183,22 @@ def test_regional_backend_never_schedules_unverified_groups():
     demand = PollingDemand(frozenset({"status", "battery", "travel"}), True, ("entity_status",))
     assert supported_demand(demand, RegionalBackend.endpoints).groups == frozenset({"battery"})
     assert supported_demand(demand, frozenset(Endpoint)) is demand
+
+
+def test_regional_soc_and_charging_use_the_battery_read():
+    from types import SimpleNamespace
+
+    from custom_components.ninebot.backend import RegionalBackend
+    from custom_components.ninebot.binary_sensor import DESCRIPTIONS, regional_descriptions
+    from custom_components.ninebot.raw import Endpoint
+    from custom_components.ninebot.sensor import SENSORS, regional_sensors
+
+    assert regional_sensors(frozenset(Endpoint)) is SENSORS
+    assert regional_descriptions(frozenset(Endpoint)) is DESCRIPTIONS
+    soc = next(d for d in regional_sensors(RegionalBackend.endpoints) if d.key == "battery")
+    snapshot = SimpleNamespace(battery=SimpleNamespace(observations={"electricity": 88}))
+    assert soc.group == "battery" and soc.value(snapshot) == 88
+    charging = next(
+        d for d in regional_descriptions(RegionalBackend.endpoints) if d.key == "charging"
+    )
+    assert charging.group == "battery" and charging.field == "charging"

@@ -1,6 +1,6 @@
 """Strict binary states; HA lock binary sensors are on when UNLOCKED."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -13,6 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import NinebotEntity, async_setup_dynamic
 from .parsing import boolean
+from .raw import Endpoint
 from .runtime import NinebotConfigEntry
 
 # The account broker owns wire admission; command observers remain replaceable.
@@ -72,9 +73,17 @@ class NinebotBinarySensor(NinebotEntity, BinarySensorEntity):
         return not value if self.entity_description.key == "unlocked" else value
 
 
+def regional_descriptions(endpoints: frozenset[Endpoint]) -> tuple[Description, ...]:
+    """Without status, charging comes from the battery read (same entity identity)."""
+    if Endpoint.STATUS in endpoints:
+        return DESCRIPTIONS
+    return tuple(replace(d, group="battery") if d.key == "charging" else d for d in DESCRIPTIONS)
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: NinebotConfigEntry, add: AddEntitiesCallback
 ) -> None:
+    descriptions = regional_descriptions(entry.runtime_data.coordinator.backend.endpoints)
     async_setup_dynamic(
-        hass, entry, add, lambda sn: (NinebotBinarySensor(entry, sn, d) for d in DESCRIPTIONS)
+        hass, entry, add, lambda sn: (NinebotBinarySensor(entry, sn, d) for d in descriptions)
     )

@@ -43,6 +43,7 @@ from .models import LastRide, TravelMonth, VehicleSnapshot
 from .observations import ENTITY_FIELDS, RawField
 from .parsing import boolean, display_scalar, integer, number
 from .period_statistics import DayMetric, DaySummary, day_summary
+from .raw import Endpoint
 from .ride_models import Ride
 from .runtime import NinebotConfigEntry
 from .travel_statistics import energy_statistics
@@ -936,13 +937,31 @@ def legacy_battery_description(key: str) -> Description:
     )
 
 
+def regional_sensors(endpoints: frozenset[Endpoint]) -> tuple[Description, ...]:
+    """Without status, main SOC comes from the battery read (same entity identity)."""
+    if Endpoint.STATUS in endpoints:
+        return SENSORS
+    return tuple(
+        replace(
+            d,
+            group="battery",
+            value=lambda s: number(s.battery.observations.get("electricity"), 0, 100),
+        )
+        if d.key == "battery"
+        else d
+        for d in SENSORS
+    )
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: NinebotConfigEntry, add: AddEntitiesCallback
 ) -> None:
+    descriptions = regional_sensors(entry.runtime_data.coordinator.backend.endpoints)
+
     def factory(sn: str) -> Iterable[Entity]:
         snapshot = entry.runtime_data.coordinator.data[sn]
         yield from (
-            NinebotSensor(entry, sn, d) for d in (*SENSORS, *battery_descriptions(snapshot))
+            NinebotSensor(entry, sn, d) for d in (*descriptions, *battery_descriptions(snapshot))
         )
         yield ControlAvailabilitySensor(entry, sn)
         yield RawDataSummarySensor(entry, sn)
