@@ -21,7 +21,7 @@ from . import adapters
 from .archive_browse import RecordedCursors
 from .archive_runtime import ArchiveStatistics
 from .async_utils import async_drain
-from .backend import BackendResult, NinebotBackend, NinecliBackend
+from .backend import BackendResult, NinebotBackend, NinecliBackend, RegionalBackend
 from .capabilities import CONTROL_ACTIONS, ControlDecision, VehicleCapabilities, decide_control
 from .client import NinecliClient
 from .const import (
@@ -76,6 +76,19 @@ def travel_record(record: RawRecord, month: str) -> TravelMonth:
     return adapters.travel(record.payload(), month)
 
 
+GROUP_ENDPOINTS: dict[Group, Endpoint] = {
+    "status": Endpoint.STATUS,
+    "battery": Endpoint.BATTERY,
+    "travel": Endpoint.TRAVEL,
+}
+
+
+def supported_demand(demand: PollingDemand, endpoints: frozenset[Endpoint]) -> PollingDemand:
+    """Never schedule a group the backend cannot serve (e.g. status on fra)."""
+    groups = frozenset(group for group in demand.groups if GROUP_ENDPOINTS[group] in endpoints)
+    return demand if groups == demand.groups else replace(demand, groups=groups)
+
+
 class NinebotCoordinator(DataUpdateCoordinator[dict[str, VehicleSnapshot]]):
     """Shared bounded reads, independent group commits and partial failure."""
 
@@ -89,9 +102,9 @@ class NinebotCoordinator(DataUpdateCoordinator[dict[str, VehicleSnapshot]]):
         monotonic: Callable[[], float] | None = None,
     ) -> None:
         self.client = client
-        self.backend: NinebotBackend = backend or NinecliBackend(
-            client, expected_uid=entry.data.get(CONF_BUSINESS_UID)
-        )
+        self.backend: NinebotBackend = backend or (
+            RegionalBackend if isinstance(client, RegionalClient) else NinecliBackend
+        )(client, expected_uid=entry.data.get(CONF_BUSINESS_UID))
         self.raw = RawStore()
         self.history = HistoryStore()
         self.recorded_cursors = RecordedCursors()
@@ -648,6 +661,8 @@ class NinebotCoordinator(DataUpdateCoordinator[dict[str, VehicleSnapshot]]):
         include_previous_month: bool,
         single_attempt: bool,
     ) -> None:
+        if GROUP_ENDPOINTS[group] not in self.backend.endpoints:
+            return
         now = dt_util.utcnow()
         stamp = self.monotonic()
         if not force and not self._due(sn, group, stamp):
@@ -1262,6 +1277,9 @@ class NinebotCoordinator(DataUpdateCoordinator[dict[str, VehicleSnapshot]]):
             raise
 
     def demand(self, sn: str) -> PollingDemand:
+        return supported_demand(self._consumer_demand(sn), self.backend.endpoints)
+
+    def _consumer_demand(self, sn: str) -> PollingDemand:
         return polling_demand(
             self.data[sn],
             (*self.async_contexts(), ConsumerContext(sn, Need.MONTH))
@@ -1403,6 +1421,8 @@ class NinebotCoordinator(DataUpdateCoordinator[dict[str, VehicleSnapshot]]):
         )
 
     def status_recovering(self) -> bool:
+        if Endpoint.STATUS not in self.backend.endpoints:
+            return False
         active = [value for value in self.data.values() if value.present]
         return bool(active) and all(
             value.status_freshness.error

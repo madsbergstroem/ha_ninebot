@@ -144,3 +144,13 @@ class NinecliBackend:
 
     async def async_close(self) -> None:
         await self.client.async_close()
+
+
+class RegionalBackend(NinecliBackend):
+    """Regional sessions only advertise reads verified on that service.
+
+    Status (desktop-component) and travel are not verified on fra, so they are
+    never scheduled; battery polling must not wait for a status recovery.
+    """
+
+    endpoints = frozenset({Endpoint.VEHICLES, Endpoint.BATTERY})

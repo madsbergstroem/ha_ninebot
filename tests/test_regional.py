@@ -171,3 +171,15 @@ async def test_missing_session_requires_reauthentication(tmp_path):
 def test_unknown_region_is_rejected(tmp_path):
     with pytest.raises(NinebotError):
         RegionalClient(tmp_path, None, region="bj")
+
+
+def test_regional_backend_never_schedules_unverified_groups():
+    from custom_components.ninebot.backend import RegionalBackend
+    from custom_components.ninebot.coordinator import supported_demand
+    from custom_components.ninebot.demand import PollingDemand
+    from custom_components.ninebot.raw import Endpoint
+
+    assert RegionalBackend.endpoints == frozenset({Endpoint.VEHICLES, Endpoint.BATTERY})
+    demand = PollingDemand(frozenset({"status", "battery", "travel"}), True, ("entity_status",))
+    assert supported_demand(demand, RegionalBackend.endpoints).groups == frozenset({"battery"})
+    assert supported_demand(demand, frozenset(Endpoint)) is demand
