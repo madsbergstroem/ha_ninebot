@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Synthetic electric scooter">
+  <defs>
+    <linearGradient id="paint" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fa5158"/><stop offset="1" stop-color="#a91024"/></linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e8edf2"/><stop offset="1" stop-color="#7d8995"/></linearGradient>
+    <radialGradient id="shine"><stop stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="330" cy="316" rx="242" ry="18" fill="#07111c" opacity=".2"/>
+  <g fill="#17212b"><circle cx="174" cy="267" r="62"/><circle cx="486" cy="267" r="62"/></g>
+  <g fill="#aeb8c2"><circle cx="174" cy="267" r="38"/><circle cx="486" cy="267" r="38"/></g>
+  <g fill="#33414e"><circle cx="174" cy="267" r="25"/><circle cx="486" cy="267" r="25"/></g>
+  <g stroke="#aeb8c2" stroke-width="5"><path d="M174 242v50M149 267h50M486 242v50M461 267h50"/></g>
+  <path d="M157 245c19-55 63-79 127-71l99 13c39 5 61 28 69 62l-35 25H211c-35 0-63-8-54-29z" fill="url(#paint)"/>
+  <path d="M207 208c34-23 88-24 143-10l57 14c-39 4-82 17-111 43h-85c-23 0-26-27-4-47z" fill="#c82436"/>
+  <path d="M232 253h179l-24 27H214z" fill="#27333e"/>
+  <path d="M236 175c12-30 41-43 81-38l65 9-17 42-128-2z" fill="#202b35"/>
+  <path d="M245 169c18-20 47-24 84-17" fill="none" stroke="#4a5864" stroke-width="8" stroke-linecap="round"/>
+  <path d="M403 191c-4-46-1-85 17-113 24 8 45 33 56 72l17 82-43 34-29-18z" fill="url(#paint)"/>
+  <path d="M423 89c-5-25 3-42 23-52l17 7-12 52z" fill="#27333e"/>
+  <path d="M402 45h75" fill="none" stroke="#202b35" stroke-width="12" stroke-linecap="round"/>
+  <path d="M466 91c20 12 31 34 35 61l-27-4c-5-22-12-36-25-44z" fill="#f3f7fa"/>
+  <path d="M466 96c11 8 19 20 23 35" fill="none" stroke="#b9e5ff" stroke-width="8" stroke-linecap="round"/>
+  <path d="M447 244l30 24" fill="none" stroke="url(#metal)" stroke-width="13" stroke-linecap="round"/>
+  <path d="M138 218c-18 4-30 15-37 32l30 9 37-24z" fill="#c82436"/>
+  <path d="M105 244h35" stroke="#ffcf5c" stroke-width="9" stroke-linecap="round"/>
+  <path d="M300 189c28-8 61-5 91 5" fill="none" stroke="url(#shine)" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="372" cy="225" r="18" fill="#f5f7fa" opacity=".85"/><path d="M363 225h18" stroke="#7b8791" stroke-width="4"/>
+</svg>
