@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add the bundled `ninebot-vehicle-card`: battery ring, range, odometer, today's distance, battery temperature, health score, vehicle image, lock/charging/power state and home/away presence, discovered from the main battery entity's shared ID prefix.
+- Offer lock/unlock, find, seat and refresh controls with confirmation for unlock and seat, an inline error on failure, and `show_controls: false` for read-only cards.
+- Document the vehicle card resource, entity overrides, unknown-value handling and its no-cloud, home/away-only privacy behavior.
+
 ## 2.0.0
 
 - Complete the 2.0 refactor across 107 betas and four release candidates, with independent accounts, coordinated live data and native Home Assistant representations.

@@ -1,0 +1,57 @@
+<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ninebot synthetic vehicle card fixture</title>
+<style>
+:root{color-scheme:dark;--primary-text-color:#edf3f8;--secondary-text-color:#93a4b5;--disabled-text-color:#687887;--primary-color:#62b5ff;--divider-color:#2c3b49;--card-background-color:#15212c;--secondary-background-color:#0d1720;--success-color:#54d89a;--warning-color:#f6bb5c;--error-color:#ff7185}
+@media(prefers-color-scheme:light){:root{color-scheme:light;--primary-text-color:#182733;--secondary-text-color:#637487;--disabled-text-color:#9aa7b2;--primary-color:#1678c8;--divider-color:#d7e0e7;--card-background-color:#fff;--secondary-background-color:#edf2f6;--success-color:#16875b;--warning-color:#a96208;--error-color:#c8344d}body{background:#dfe7ed}}
+*{box-sizing:border-box}body{margin:0;padding:36px 16px;background:#0b141d;color:var(--primary-text-color);font:16px system-ui,-apple-system,sans-serif}main{max-width:520px;margin:auto}h1{margin:0 0 4px;font-size:24px}p{margin:0 0 24px;color:var(--secondary-text-color);font-size:13px}ha-card{box-shadow:0 20px 55px rgb(0 0 0 / .2)}ha-icon{display:inline-flex;align-items:center;justify-content:center;width:var(--mdc-icon-size,20px);height:var(--mdc-icon-size,20px);font-size:var(--mdc-icon-size,20px);font-style:normal;line-height:1}
+</style>
+<main><h1>Ninebot · Fahrzeugkarte</h1><p>Synthetische Daten · keine HA-, Konto- oder Cloud-Verbindung</p></main>
+<script type="module">
+import '/ninebot-static/ninebot-vehicle-card.js';
+const symbols = {'lock-open-outline':'🔓','lock-outline':'🔒',bullhorn:'📢','package-variant':'▰',refresh:'↻',counter:'◎','map-marker-distance':'↗',thermometer:'♨','heart-pulse':'♥','map-marker':'●',scooter:'🛵'};
+if (!customElements.get('ha-icon')) customElements.define('ha-icon', class extends HTMLElement {
+  static observedAttributes = ['icon'];
+  connectedCallback() { this.draw(); }
+  attributeChangedCallback() { this.draw(); }
+  draw() { this.textContent = symbols[this.getAttribute('icon')?.replace('mdi:','')] ?? '•'; }
+});
+const prefix = 'synthetic_ninebot_e125s_';
+const state = (value, unit, attributes = {}) => ({ state: String(value), attributes: { ...(unit ? { unit_of_measurement: unit } : {}), ...attributes } });
+const states = {
+  [`sensor.${prefix}battery`]: state(79, '%', { device_class: 'battery', friendly_name: 'Synthetic E125S Main battery charge' }),
+  [`sensor.${prefix}endurance`]: state(52.4, 'km'),
+  [`sensor.${prefix}odometer`]: state(1361),
+  [`sensor.${prefix}batt_temp`]: state(11, '°C'),
+  [`sensor.${prefix}health_score`]: state(100),
+  [`sensor.${prefix}today_mileage`]: state(12.4, 'km'),
+  [`image.${prefix}vehicle_image`]: state('2026-10-30T12:00:00Z', null, { entity_picture: '/synthetic-scooter.svg', friendly_name: 'Synthetic E125S Vehicle image' }),
+  [`device_tracker.${prefix}location`]: state('home', null, { friendly_name: 'Segway E125S' }),
+  [`lock.${prefix}vehicle_lock`]: state('locked'),
+  [`binary_sensor.${prefix}charging`]: state('off'),
+  [`binary_sensor.${prefix}power`]: state('on'),
+  [`button.${prefix}bell`]: state('unknown'),
+  [`button.${prefix}bucket`]: state('unknown'),
+  [`button.${prefix}refresh`]: state('unknown'),
+};
+window.fixtureServiceCalls = [];
+window.fixtureConfirmations = [];
+window.fixtureMoreInfo = [];
+window.fixtureConfirm = true;
+window.fixtureFail = false;
+window.confirm = text => { fixtureConfirmations.push(text); return fixtureConfirm; };
+window.fixtureHass = { language: 'de', locale: { language: 'de' }, states, callService: async (domain, service, data) => {
+  fixtureServiceCalls.push({ domain, service, data });
+  if (fixtureFail) throw new Error('Synthetic failure');
+  if (domain === 'lock') {
+    const current = fixtureHass.states[data.entity_id];
+    fixtureHass.states = { ...fixtureHass.states, [data.entity_id]: { ...current, state: service === 'unlock' ? 'unlocked' : 'locked' } };
+    fixtureCard.hass = { ...fixtureHass };
+  }
+} };
+window.fixtureCard = document.createElement('ninebot-vehicle-card');
+window.fixtureConfig = { type: 'custom:ninebot-vehicle-card', entity: `sensor.${prefix}battery` };
+fixtureCard.setConfig(fixtureConfig);
+fixtureCard.hass = fixtureHass;
+fixtureCard.addEventListener('hass-more-info', event => fixtureMoreInfo.push(event.detail.entityId));
+document.querySelector('main').append(fixtureCard);
+</script></html>
