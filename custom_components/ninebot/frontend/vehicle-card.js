@@ -25,7 +25,8 @@ export const VEHICLE_LABELS = {
     find: 'Find', seat: 'Seat', refresh: 'Refresh', confirm_unlock: 'Unlock the vehicle remotely?',
     confirm_seat: 'Open the seat compartment remotely?', action_error: 'The action could not be completed. Try again.',
     vehicle_image: 'Vehicle image', editor_vehicle: 'Main battery entity', editor_name: 'Card title (optional)',
-    editor_controls: 'Show vehicle controls', editor_note: 'Related Ninebot entities are discovered from the shared entity-ID prefix. Advanced overrides remain YAML-editable.',
+    editor_controls: 'Show vehicle controls', editor_metrics: 'Show metrics', editor_presence: 'Show location and power status',
+    editor_image_path: 'Vehicle image opens this dashboard path (optional)', editor_note: 'Related Ninebot entities are discovered from the shared entity-ID prefix. Advanced overrides remain YAML-editable.',
   },
   de: {
     battery: 'Akku', range: 'Reichweite', odometer: 'Kilometerstand', today: 'Heute',
@@ -35,7 +36,8 @@ export const VEHICLE_LABELS = {
     find: 'Finden', seat: 'Sitzfach', refresh: 'Aktualisieren', confirm_unlock: 'Fahrzeug aus der Ferne entriegeln?',
     confirm_seat: 'Sitzfach aus der Ferne öffnen?', action_error: 'Die Aktion konnte nicht ausgeführt werden. Bitte erneut versuchen.',
     vehicle_image: 'Fahrzeugbild', editor_vehicle: 'Hauptbatterie-Entity', editor_name: 'Kartentitel (optional)',
-    editor_controls: 'Fahrzeugsteuerung anzeigen', editor_note: 'Die zugehörigen Ninebot-Entities werden über den gemeinsamen Entity-ID-Präfix gefunden. Erweiterte Overrides bleiben in YAML möglich.',
+    editor_controls: 'Fahrzeugsteuerung anzeigen', editor_metrics: 'Kennzahlen anzeigen', editor_presence: 'Standort und Status anzeigen',
+    editor_image_path: 'Fahrzeugbild öffnet diesen Dashboard-Pfad (optional)', editor_note: 'Die zugehörigen Ninebot-Entities werden über den gemeinsamen Entity-ID-Präfix gefunden. Erweiterte Overrides bleiben in YAML möglich.',
   },
   'zh-Hans': {
     battery: '电量', range: '续航', odometer: '总里程', today: '今日',
@@ -45,7 +47,8 @@ export const VEHICLE_LABELS = {
     find: '寻车', seat: '座桶', refresh: '刷新', confirm_unlock: '确定远程解锁车辆吗？',
     confirm_seat: '确定远程打开座桶吗？', action_error: '操作未完成，请重试。',
     vehicle_image: '车辆图片', editor_vehicle: '主电池实体', editor_name: '卡片标题（可选）',
-    editor_controls: '显示车辆控制', editor_note: '通过实体 ID 的共同前缀发现相关九号实体。高级覆盖仍可在 YAML 中编辑。',
+    editor_controls: '显示车辆控制', editor_metrics: '显示指标', editor_presence: '显示位置与电源状态',
+    editor_image_path: '点击车辆图片打开的仪表盘路径（可选）', editor_note: '通过实体 ID 的共同前缀发现相关九号实体。高级覆盖仍可在 YAML 中编辑。',
   },
 };
 
@@ -60,6 +63,11 @@ export function normalizeConfig(config) {
   }
   if (config.name !== undefined && typeof config.name !== 'string') throw new Error('Card title must be text');
   if (config.show_controls !== undefined && typeof config.show_controls !== 'boolean') throw new Error('show_controls must be boolean');
+  if (config.show_metrics !== undefined && typeof config.show_metrics !== 'boolean') throw new Error('show_metrics must be boolean');
+  if (config.show_presence !== undefined && typeof config.show_presence !== 'boolean') throw new Error('show_presence must be boolean');
+  if (config.image_navigate !== undefined && (typeof config.image_navigate !== 'string' || !config.image_navigate.startsWith('/'))) {
+    throw new Error('image_navigate must be a dashboard path starting with /');
+  }
   if (config.entities !== undefined && (!config.entities || typeof config.entities !== 'object' || Array.isArray(config.entities))) {
     throw new Error('entities must be a mapping');
   }

@@ -44,6 +44,24 @@ export class NinebotVehicleCardEditor extends (globalThis.HTMLElement ?? class {
     const controls = document.createElement('input'); controls.type = 'checkbox'; controls.checked = this.config.show_controls !== false;
     controls.addEventListener('change', () => this.emit({ ...this.config, show_controls: controls.checked }));
     controlLabel.append(controls, document.createTextNode(labels.editor_controls)); root.append(controlLabel);
+
+    for (const [key, text] of [['show_metrics', labels.editor_metrics], ['show_presence', labels.editor_presence]]) {
+      const row = document.createElement('label'); row.className = 'check';
+      const box = document.createElement('input'); box.type = 'checkbox'; box.checked = this.config[key] !== false;
+      box.addEventListener('change', () => this.emit({ ...this.config, [key]: box.checked }));
+      row.append(box, document.createTextNode(text)); root.append(row);
+    }
+
+    const pathLabel = document.createElement('label'); pathLabel.textContent = labels.editor_image_path;
+    const path = document.createElement('input'); path.type = 'text'; path.value = this.config.image_navigate ?? '';
+    path.placeholder = '/lovelace/REPLACE_WITH_DETAILS_VIEW';
+    path.addEventListener('change', () => {
+      const candidate = { ...this.config, entities: { ...this.config.entities } };
+      if (path.value.trim()) candidate.image_navigate = path.value.trim(); else delete candidate.image_navigate;
+      this.emit(candidate);
+    });
+    pathLabel.append(path); root.append(pathLabel);
+
     root.append(elementSmall(labels.editor_note));
     this.shadowRoot.replaceChildren(style, root);
   }

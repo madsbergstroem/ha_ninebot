@@ -124,15 +124,18 @@ type: custom:ninebot-vehicle-card
 entity: sensor.REPLACE_WITH_VEHICLE_battery
 name: E125S
 show_controls: false
+show_metrics: true
+show_presence: true
+image_navigate: /lovelace/REPLACE_WITH_DETAILS_VIEW
 entities:
   range: sensor.REPLACE_WITH_CUSTOM_RANGE
 ```
 
-Overrides are validated per domain, so a wrong domain fails the card instead of silently showing another device's data. The visual editor covers the battery entity, title and controls; advanced overrides remain YAML-editable.
+Overrides are validated per domain, so a wrong domain fails the card instead of silently showing another device's data. The visual editor covers the battery entity, title, the `show_controls`/`show_metrics`/`show_presence` switches and the `image_navigate` path; advanced overrides remain YAML-editable.
 
-The card shows a battery ring clamped to 0–100 with low/medium/high coloring, range, odometer, today's distance, battery temperature, health score, the vehicle image, lock/charging/power state and home/away presence. Missing, `unknown` or `unavailable` states render as **—**; no value is estimated or carried over from an older reading.
+The card is a compact band: a small battery ring (0–100, low/medium/high coloring) with range beneath it, the vehicle image, and one row of metric tiles for odometer, today's distance, battery temperature and health score, followed by a home/away line and a thin control row. Missing, `unknown` or `unavailable` states render as **—**; no value is estimated or carried over from an older reading.
 
-Controls call the existing HA services of those entities: lock/unlock, find, seat compartment and refresh. Unlock and seat ask for confirmation first, and a failed call shows an inline message rather than a silent no-op. Set `show_controls: false` for a read-only card. The card makes no cloud requests of its own: it renders existing entity states, forwards only the services you press, and reads the location entity as home/away only — never coordinates or trails. Labels follow the HA language for English, German and Simplified Chinese, with English fallback.
+Controls call the existing HA services of those entities: lock/unlock, find, seat compartment and refresh. Unlock and seat ask for confirmation first, and a failed call shows an inline message rather than a silent no-op. Set `show_controls: false` for a read-only card. `show_metrics: false` hides the metric tiles, `show_presence: false` hides the home/away line, and `image_navigate` turns the vehicle image into a dashboard link (e.g. a details subview) instead of opening the image's details dialog. The card makes no cloud requests of its own: it renders existing entity states, forwards only the services you press, and reads the location entity as home/away only — never coordinates or trails. Labels follow the HA language for English, German and Simplified Chinese, with English fallback.
 
 ## Ride summaries and vehicle events
 

@@ -124,15 +124,18 @@ type: custom:ninebot-vehicle-card
 entity: sensor.REPLACE_WITH_VEHICLE_battery
 name: E125S
 show_controls: false
+show_metrics: true
+show_presence: true
+image_navigate: /lovelace/REPLACE_WITH_DETAILS_VIEW
 entities:
   range: sensor.REPLACE_WITH_CUSTOM_RANGE
 ```
 
-覆盖项按域校验，域不匹配时卡片报错，而不是静默显示其他设备的数据。可视化编辑器覆盖电池实体、标题与控制开关，高级覆盖保留在 YAML 中。
+覆盖项按域校验，域不匹配时卡片报错，而不是静默显示其他设备的数据。可视化编辑器覆盖电池实体、标题、`show_controls`/`show_metrics`/`show_presence` 三个开关以及 `image_navigate` 路径，高级覆盖保留在 YAML 中。
 
-卡片显示限制在 0–100 的环形电量（低/中/高三色）、续航、总里程、今日里程、电池温度、健康评分、车辆图片、车锁/充电/电源状态以及在家/外出状态。缺失、`unknown` 或 `unavailable` 一律显示 **—**，不估算，也不沿用旧读数。
+卡片为紧凑横向布局：小号环形电量（0–100，低/中/高三色）下方是续航，旁边是车辆图片，再下方一行指标（总里程、今日里程、电池温度、健康评分），随后是在家/外出行和一条细控制栏。缺失、`unknown` 或 `unavailable` 一律显示 **—**，不估算，也不沿用旧读数。
 
-控制按钮调用这些实体已有的 HA 服务：上锁/解锁、寻车、座桶、刷新。解锁与座桶会先请求确认，调用失败时显示行内提示而不是静默失败。只读卡片设置 `show_controls: false`。卡片自身不发起云端请求：只渲染已有实体状态，仅转发你按下的服务，并且只把位置实体读作在家/外出，不读取坐标或轨迹。标签跟随 HA 语言，支持英语、德语与简体中文，缺失时回退英语。
+控制按钮调用这些实体已有的 HA 服务：上锁/解锁、寻车、座桶、刷新。解锁与座桶会先请求确认，调用失败时显示行内提示而不是静默失败。只读卡片设置 `show_controls: false`，`show_metrics: false` 隐藏指标行，`show_presence: false` 隐藏在家/外出行，`image_navigate` 让车辆图片变为仪表盘跳转（例如详情子视图），而不是打开图片详情。卡片自身不发起云端请求：只渲染已有实体状态，仅转发你按下的服务，并且只把位置实体读作在家/外出，不读取坐标或轨迹。标签跟随 HA 语言，支持英语、德语与简体中文，缺失时回退英语。
 
 ## 行程摘要与车辆事件
 

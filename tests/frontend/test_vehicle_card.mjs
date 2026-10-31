@@ -57,6 +57,15 @@ test('stub only auto-selects one unambiguous Ninebot battery', () => {
   assert.equal(batteryCandidates({ 'sensor.other_battery': state, [entity]: state }).length, 1);
 });
 
+test('optional sections and the image path stay validated', () => {
+  assert.equal(normalizeConfig({ ...config, show_metrics: false, show_presence: false }).show_metrics, false);
+  assert.equal(normalizeConfig({ ...config, image_navigate: '/lovelace/e125s-details' }).image_navigate, '/lovelace/e125s-details');
+  for (const candidate of [{ ...config, show_metrics: 'no' }, { ...config, show_presence: 0 },
+    { ...config, image_navigate: 'lovelace/e125s-details' }, { ...config, image_navigate: 7 }]) {
+    assert.throws(() => normalizeConfig(candidate));
+  }
+});
+
 test('card locales have matching keys and regional fallbacks', () => {
   for (const labels of Object.values(VEHICLE_LABELS)) {
     assert.deepEqual(Object.keys(labels).sort(), Object.keys(VEHICLE_LABELS.en).sort());

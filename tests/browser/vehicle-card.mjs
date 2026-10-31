@@ -81,6 +81,9 @@ try {
   await page.getByRole('button', { name: 'Sitzfach', exact: true }).click();
   await page.getByRole('button', { name: 'Aktualisieren', exact: true }).click();
   await page.waitForFunction(() => fixtureServiceCalls.length === 5);
+  assert.equal(await page.locator('ninebot-vehicle-card .control').nth(2).locator('ha-icon').count(), 0,
+    'the seat control stays label-only');
+  assert.equal(await page.locator('ninebot-vehicle-card .control').nth(0).locator('ha-icon').count(), 1);
   assert.deepEqual(await page.evaluate(() => fixtureServiceCalls.slice(2).map(call => [call.domain, call.service, call.data.entity_id])), [
     ['button', 'press', 'button.synthetic_ninebot_e125s_bell'],
     ['button', 'press', 'button.synthetic_ninebot_e125s_bucket'],
@@ -122,6 +125,14 @@ try {
   await page.waitForFunction(() => editedConfig?.name === 'Synthetic E125S');
   await page.locator('ninebot-vehicle-card-editor').getByLabel('Fahrzeugsteuerung anzeigen', { exact: true }).uncheck();
   await page.waitForFunction(() => editedConfig?.show_controls === false);
+  await page.locator('ninebot-vehicle-card-editor').getByLabel('Kennzahlen anzeigen', { exact: true }).uncheck();
+  await page.waitForFunction(() => editedConfig?.show_metrics === false);
+  await page.locator('ninebot-vehicle-card-editor').getByLabel('Standort und Status anzeigen', { exact: true }).uncheck();
+  await page.waitForFunction(() => editedConfig?.show_presence === false);
+  await page.locator('ninebot-vehicle-card-editor').getByLabel('Fahrzeugbild öffnet diesen Dashboard-Pfad (optional)', { exact: true })
+    .fill('/lovelace/synthetic-details');
+  await page.locator('ninebot-vehicle-card-editor').getByLabel('Fahrzeugbild öffnet diesen Dashboard-Pfad (optional)', { exact: true }).press('Tab');
+  await page.waitForFunction(() => editedConfig?.image_navigate === '/lovelace/synthetic-details');
   await page.evaluate(() => fixtureEditor.remove());
 
   await page.setViewportSize({ width: 390, height: 844 });

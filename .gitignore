@@ -8,3 +8,5 @@ coverage.xml
 htmlcov/
 .venv/
 coverage.json
+
+.browser-test/
