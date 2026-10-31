@@ -16,6 +16,10 @@ if (!customElements.get('ha-icon')) customElements.define('ha-icon', class exten
   draw() { this.textContent = symbols[this.getAttribute('icon')?.replace('mdi:','')] ?? '•'; }
 });
 const prefix = 'synthetic_ninebot_e125s_';
+if (!customElements.get('hui-map-card')) customElements.define('hui-map-card', class extends HTMLElement {
+  setConfig(config) { this._config = config; this.textContent = `Karte · ${config.entities.map(entry => entry.entity).join(', ')}`; }
+  set hass(value) { this._hass = value; this.dataset.location = value?.states?.[`device_tracker.${prefix}location`]?.state ?? ''; }
+});
 const state = (value, unit, attributes = {}) => ({ state: String(value), attributes: { ...(unit ? { unit_of_measurement: unit } : {}), ...attributes } });
 const states = {
   [`sensor.${prefix}battery`]: state(79, '%', { device_class: 'battery', friendly_name: 'Synthetic E125S Main battery charge' }),
@@ -23,6 +27,12 @@ const states = {
   [`sensor.${prefix}odometer`]: state(1361),
   [`sensor.${prefix}batt_temp`]: state(11, '°C'),
   [`sensor.${prefix}health_score`]: state(100),
+  [`sensor.${prefix}bms_voltage`]: state(50.8, 'V'),
+  [`sensor.${prefix}bms_cycles`]: state(18),
+  [`sensor.${prefix}remaining_charge_time`]: state(75, 'min'),
+  [`sensor.${prefix}emergency_battery`]: state(100, '%'),
+  [`sensor.${prefix}range_ai`]: state(52.4, 'km'),
+  [`sensor.${prefix}today_ride_count`]: state(2),
   [`sensor.${prefix}today_mileage`]: state(12.4, 'km'),
   [`image.${prefix}vehicle_image`]: state('2026-10-30T12:00:00Z', null, { entity_picture: '/synthetic-scooter.svg', friendly_name: 'Synthetic E125S Vehicle image' }),
   [`device_tracker.${prefix}location`]: state('home', null, { friendly_name: 'Segway E125S' }),

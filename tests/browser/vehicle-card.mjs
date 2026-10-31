@@ -38,33 +38,55 @@ try {
   await page.goto(origin);
   await page.getByRole('img', { name: 'Akku: 79%', exact: true }).waitFor();
   await page.getByText('Segway E125S', { exact: true }).waitFor();
-  await page.getByText('52,4 km', { exact: true }).waitFor();
-  await page.getByText('1.361', { exact: true }).waitFor();
+  assert.equal((await page.locator('ninebot-vehicle-card .range strong').textContent()).trim(), '52,4 km');
+  assert.equal((await page.locator('ninebot-vehicle-card .metric .value').first().textContent()).trim(), '1.361');
   await page.getByText('Zuhause', { exact: true }).waitFor();
-  assert.equal(await page.locator('ninebot-vehicle-card img').getAttribute('src'), '/synthetic-scooter.svg');
+  assert.equal(await page.locator('ninebot-vehicle-card .vehicle img').getAttribute('src'), '/synthetic-scooter.svg');
+  assert.equal(await page.locator('ninebot-vehicle-card .backdrop img').getAttribute('src'), '/synthetic-scooter.svg');
   assert.equal(await page.evaluate(() => fixtureServiceCalls.length), 0);
 
   const output = process.env.BROWSER_TEST_OUTPUT;
   if (output) { await mkdir(output, { recursive: true }); await page.screenshot({ path: join(output, 'vehicle-card-dark.png'), fullPage: true }); }
+  await page.getByRole('tab', { name: 'Karte', exact: true }).click();
+  await page.getByText('Karte · device_tracker.synthetic_ninebot_e125s_location', { exact: true }).waitFor();
+  if (output) await page.screenshot({ path: join(output, 'vehicle-card-map.png'), fullPage: true });
+  assert.equal(await page.locator('ninebot-vehicle-card .metrics').isVisible(), false, 'the map tab replaces the overview');
+  await page.getByRole('tab', { name: 'Details', exact: true }).click();
+  await page.getByText('BMS-Spannung', { exact: true }).waitFor();
+  await page.getByText('50,8 V', { exact: true }).waitFor();
+  await page.getByText('Ladezyklen', { exact: true }).waitFor();
+  if (output) await page.screenshot({ path: join(output, 'vehicle-card-details.png'), fullPage: true });
+  assert.equal(await page.locator('ninebot-vehicle-card .hero').isVisible(), false);
+  await page.getByRole('tab', { name: 'Übersicht', exact: true }).click();
+  await page.getByRole('img', { name: 'Akku: 79%', exact: true }).waitFor();
+
   await page.emulateMedia({ colorScheme: 'light' });
+  await page.waitForTimeout(250);
   if (output) await page.screenshot({ path: join(output, 'vehicle-card-light.png'), fullPage: true });
   await page.emulateMedia({ colorScheme: 'dark' });
 
   await page.evaluate(() => {
     window.fixtureRenders = 0;
-    const original = fixtureCard.render.bind(fixtureCard);
-    fixtureCard.render = () => { fixtureRenders += 1; original(); };
+    window.fixtureUpdates = 0;
+    const originalRender = fixtureCard.render.bind(fixtureCard);
+    const originalUpdate = fixtureCard.update.bind(fixtureCard);
+    fixtureCard.render = () => { fixtureRenders += 1; originalRender(); };
+    fixtureCard.update = () => { fixtureUpdates += 1; originalUpdate(); };
     for (let index = 0; index < 25; index += 1) fixtureCard.hass = { ...fixtureHass };
   });
-  assert.equal(await page.evaluate(() => fixtureRenders), 0, 'unrelated HA updates do not redraw the card');
+  assert.equal(await page.evaluate(() => fixtureRenders), 0, 'unrelated HA updates do not rebuild the card');
+  assert.equal(await page.evaluate(() => fixtureUpdates), 0, 'unrelated HA updates do not redraw the card');
   await page.evaluate(() => {
     const id = 'sensor.synthetic_ninebot_e125s_battery';
     fixtureHass.states = { ...fixtureHass.states, [id]: { ...fixtureHass.states[id], state: '78' } };
     fixtureCard.hass = { ...fixtureHass };
   });
   await page.getByRole('img', { name: 'Akku: 78%', exact: true }).waitFor();
-  assert.equal(await page.evaluate(() => fixtureRenders), 1);
+  assert.equal(await page.evaluate(() => fixtureRenders), 0, 'a state change only refreshes values');
+  assert.equal(await page.evaluate(() => fixtureUpdates), 1);
   assert.equal(await page.evaluate(() => fixtureServiceCalls.length), 0);
+  assert.equal(await page.evaluate(() => fixtureCard.ui.map?.dataset.location), 'home',
+    'the map keeps its instance and still receives hass');
 
   await page.getByRole('button', { name: 'Fahrzeugbild', exact: true }).click();
   await page.getByRole('button', { name: /1\.361 Kilometerstand/ }).click();
@@ -82,7 +104,11 @@ try {
   await page.getByRole('button', { name: 'Aktualisieren', exact: true }).click();
   await page.waitForFunction(() => fixtureServiceCalls.length === 5);
   assert.equal(await page.locator('ninebot-vehicle-card .control').nth(2).locator('ha-icon').count(), 0,
-    'the seat control stays label-only');
+    'the seat control uses the drawn glyph instead of an icon font');
+  assert.equal(await page.locator('ninebot-vehicle-card .control').nth(1).locator('svg.glyph').count(), 1,
+    'find uses the drawn pin glyph');
+  assert.equal(await page.locator('ninebot-vehicle-card .control').nth(2).locator('svg.glyph').count(), 1,
+    'the seat control uses the drawn bench glyph');
   assert.equal(await page.locator('ninebot-vehicle-card .control').nth(0).locator('ha-icon').count(), 1);
   assert.deepEqual(await page.evaluate(() => fixtureServiceCalls.slice(2).map(call => [call.domain, call.service, call.data.entity_id])), [
     ['button', 'press', 'button.synthetic_ninebot_e125s_bell'],
@@ -129,11 +155,38 @@ try {
   await page.waitForFunction(() => editedConfig?.show_metrics === false);
   await page.locator('ninebot-vehicle-card-editor').getByLabel('Standort und Status anzeigen', { exact: true }).uncheck();
   await page.waitForFunction(() => editedConfig?.show_presence === false);
+  await page.locator('ninebot-vehicle-card-editor').getByLabel('Tabs anzeigen', { exact: true }).uncheck();
+  await page.waitForFunction(() => editedConfig?.tabs === false);
+  await page.locator('ninebot-vehicle-card-editor').getByLabel('Karten-Tab anzeigen', { exact: true }).uncheck();
+  await page.waitForFunction(() => editedConfig?.map === false);
+  await page.locator('ninebot-vehicle-card-editor').getByLabel('Details-Tab anzeigen', { exact: true }).uncheck();
+  await page.waitForFunction(() => editedConfig?.details === false);
+  await page.locator('ninebot-vehicle-card-editor').getByLabel('Fahrzeug-Hintergrund anzeigen', { exact: true }).uncheck();
+  await page.waitForFunction(() => editedConfig?.show_background === false);
   await page.locator('ninebot-vehicle-card-editor').getByLabel('Fahrzeugbild öffnet diesen Dashboard-Pfad (optional)', { exact: true })
     .fill('/lovelace/synthetic-details');
   await page.locator('ninebot-vehicle-card-editor').getByLabel('Fahrzeugbild öffnet diesen Dashboard-Pfad (optional)', { exact: true }).press('Tab');
   await page.waitForFunction(() => editedConfig?.image_navigate === '/lovelace/synthetic-details');
   await page.evaluate(() => fixtureEditor.remove());
+
+  await page.evaluate(async () => {
+    const card = document.createElement('ninebot-vehicle-card');
+    card.id = 'plain';
+    card.setConfig({
+      type: 'custom:ninebot-vehicle-card', entity: 'sensor.synthetic_ninebot_e125s_battery',
+      tabs: false, show_background: false, show_metrics: false,
+    });
+    card.hass = fixtureHass;
+    document.querySelector('main').append(card);
+  });
+  const plain = page.locator('#plain');
+  await plain.getByRole('img', { name: 'Akku: 79%', exact: true }).waitFor();
+  assert.equal(await plain.locator('.tabs').count(), 0, 'tabs: false keeps a single panel');
+  assert.equal(await plain.locator('.map, .details').count(), 0);
+  assert.equal(await plain.locator('.backdrop').count(), 0, 'show_background: false drops the image');
+  assert.equal(await plain.locator('.metrics').count(), 0);
+  assert.equal(await plain.locator('.controls').count(), 1);
+  await page.evaluate(() => document.querySelector('#plain').remove());
 
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -142,7 +195,7 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.equal(await page.getByRole('button', { name: 'Aktualisieren', exact: true }).isVisible(), true);
   assert.deepEqual(errors, []); assert.deepEqual(external, []);
-  console.log('Synthetic vehicle card passed: dark/light/mobile render, entity discovery, efficient updates, details, confirmations, editor and action failures.');
+  console.log('Synthetic vehicle card passed: dark/light/mobile render, backdrop, tabs, map reuse, details, entity discovery, efficient updates, confirmations, editor and action failures.');
 } finally {
   await browser.close(); await new Promise(resolve => server.close(resolve));
 }

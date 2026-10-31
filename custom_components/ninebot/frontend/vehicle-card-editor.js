@@ -40,12 +40,16 @@ export class NinebotVehicleCardEditor extends (globalThis.HTMLElement ?? class {
     });
     nameLabel.append(name); root.append(nameLabel);
 
-    const controlLabel = document.createElement('label'); controlLabel.className = 'check';
-    const controls = document.createElement('input'); controls.type = 'checkbox'; controls.checked = this.config.show_controls !== false;
-    controls.addEventListener('change', () => this.emit({ ...this.config, show_controls: controls.checked }));
-    controlLabel.append(controls, document.createTextNode(labels.editor_controls)); root.append(controlLabel);
-
-    for (const [key, text] of [['show_metrics', labels.editor_metrics], ['show_presence', labels.editor_presence]]) {
+    const switches = [
+      ['show_controls', labels.editor_controls],
+      ['show_metrics', labels.editor_metrics],
+      ['show_presence', labels.editor_presence],
+      ['tabs', labels.editor_tabs],
+      ['map', labels.editor_map],
+      ['details', labels.editor_details],
+      ['show_background', labels.editor_background],
+    ];
+    for (const [key, text] of switches) {
       const row = document.createElement('label'); row.className = 'check';
       const box = document.createElement('input'); box.type = 'checkbox'; box.checked = this.config[key] !== false;
       box.addEventListener('change', () => this.emit({ ...this.config, [key]: box.checked }));

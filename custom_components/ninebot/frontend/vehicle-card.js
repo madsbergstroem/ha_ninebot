@@ -14,6 +14,12 @@ export const ENTITY_SLOTS = Object.freeze({
   find: { domain: 'button', suffix: 'bell' },
   seat: { domain: 'button', suffix: 'bucket' },
   refresh: { domain: 'button', suffix: 'refresh' },
+  bms_voltage: { domain: 'sensor', suffix: 'bms_voltage' },
+  bms_cycles: { domain: 'sensor', suffix: 'bms_cycles' },
+  charge_time: { domain: 'sensor', suffix: 'remaining_charge_time' },
+  reserve: { domain: 'sensor', suffix: 'emergency_battery' },
+  range_ai: { domain: 'sensor', suffix: 'range_ai' },
+  rides_today: { domain: 'sensor', suffix: 'today_ride_count' },
 });
 
 export const VEHICLE_LABELS = {
@@ -26,7 +32,12 @@ export const VEHICLE_LABELS = {
     confirm_seat: 'Open the seat compartment remotely?', action_error: 'The action could not be completed. Try again.',
     vehicle_image: 'Vehicle image', editor_vehicle: 'Main battery entity', editor_name: 'Card title (optional)',
     editor_controls: 'Show vehicle controls', editor_metrics: 'Show metrics', editor_presence: 'Show location and power status',
-    editor_image_path: 'Vehicle image opens this dashboard path (optional)', editor_note: 'Related Ninebot entities are discovered from the shared entity-ID prefix. Advanced overrides remain YAML-editable.',
+    editor_image_path: 'Vehicle image opens this dashboard path (optional)',
+    tab_overview: 'Overview', tab_map: 'Map', tab_details: 'Details', map_placeholder: 'The map needs the Home Assistant frontend and is not available in this preview.',
+    editor_tabs: 'Show tabs', editor_map: 'Show map tab', editor_details: 'Show details tab', editor_background: 'Show vehicle background',
+    voltage: 'BMS voltage', cycles: 'Charge cycles', charge_time: 'Remaining charge', reserve: 'Reserve battery',
+    range_ai: 'Estimated range', rides_today: 'Rides today',
+    editor_note: 'Related Ninebot entities are discovered from the shared entity-ID prefix. Advanced overrides remain YAML-editable.',
   },
   de: {
     battery: 'Akku', range: 'Reichweite', odometer: 'Kilometerstand', today: 'Heute',
@@ -37,7 +48,12 @@ export const VEHICLE_LABELS = {
     confirm_seat: 'Sitzfach aus der Ferne öffnen?', action_error: 'Die Aktion konnte nicht ausgeführt werden. Bitte erneut versuchen.',
     vehicle_image: 'Fahrzeugbild', editor_vehicle: 'Hauptbatterie-Entity', editor_name: 'Kartentitel (optional)',
     editor_controls: 'Fahrzeugsteuerung anzeigen', editor_metrics: 'Kennzahlen anzeigen', editor_presence: 'Standort und Status anzeigen',
-    editor_image_path: 'Fahrzeugbild öffnet diesen Dashboard-Pfad (optional)', editor_note: 'Die zugehörigen Ninebot-Entities werden über den gemeinsamen Entity-ID-Präfix gefunden. Erweiterte Overrides bleiben in YAML möglich.',
+    editor_image_path: 'Fahrzeugbild öffnet diesen Dashboard-Pfad (optional)',
+    tab_overview: 'Übersicht', tab_map: 'Karte', tab_details: 'Details', map_placeholder: 'Die Karte benötigt das Home-Assistant-Frontend und ist in dieser Vorschau nicht verfügbar.',
+    editor_tabs: 'Tabs anzeigen', editor_map: 'Karten-Tab anzeigen', editor_details: 'Details-Tab anzeigen', editor_background: 'Fahrzeug-Hintergrund anzeigen',
+    voltage: 'BMS-Spannung', cycles: 'Ladezyklen', charge_time: 'Restladezeit', reserve: 'Reserveakku',
+    range_ai: 'Geschätzte Reichweite', rides_today: 'Fahrten heute',
+    editor_note: 'Die zugehörigen Ninebot-Entities werden über den gemeinsamen Entity-ID-Präfix gefunden. Erweiterte Overrides bleiben in YAML möglich.',
   },
   'zh-Hans': {
     battery: '电量', range: '续航', odometer: '总里程', today: '今日',
@@ -49,6 +65,10 @@ export const VEHICLE_LABELS = {
     vehicle_image: '车辆图片', editor_vehicle: '主电池实体', editor_name: '卡片标题（可选）',
     editor_controls: '显示车辆控制', editor_metrics: '显示指标', editor_presence: '显示位置与电源状态',
     editor_image_path: '点击车辆图片打开的仪表盘路径（可选）', editor_note: '通过实体 ID 的共同前缀发现相关九号实体。高级覆盖仍可在 YAML 中编辑。',
+    tab_overview: '概览', tab_map: '地图', tab_details: '详情', map_placeholder: '地图需要 Home Assistant 前端，此预览中不可用。',
+    editor_tabs: '显示标签页', editor_map: '显示地图标签页', editor_details: '显示详情标签页', editor_background: '显示车辆背景',
+    voltage: 'BMS 电压', cycles: '充电循环', charge_time: '剩余充电时间', reserve: '备用电池',
+    range_ai: '预估续航', rides_today: '今日骑行',
   },
 };
 
@@ -68,6 +88,10 @@ export function normalizeConfig(config) {
   if (config.image_navigate !== undefined && (typeof config.image_navigate !== 'string' || !config.image_navigate.startsWith('/'))) {
     throw new Error('image_navigate must be a dashboard path starting with /');
   }
+  if (config.tabs !== undefined && typeof config.tabs !== 'boolean') throw new Error('tabs must be boolean');
+  if (config.map !== undefined && typeof config.map !== 'boolean') throw new Error('map must be boolean');
+  if (config.details !== undefined && typeof config.details !== 'boolean') throw new Error('details must be boolean');
+  if (config.show_background !== undefined && typeof config.show_background !== 'boolean') throw new Error('show_background must be boolean');
   if (config.entities !== undefined && (!config.entities || typeof config.entities !== 'object' || Array.isArray(config.entities))) {
     throw new Error('entities must be a mapping');
   }

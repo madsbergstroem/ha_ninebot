@@ -60,10 +60,21 @@ test('stub only auto-selects one unambiguous Ninebot battery', () => {
 test('optional sections and the image path stay validated', () => {
   assert.equal(normalizeConfig({ ...config, show_metrics: false, show_presence: false }).show_metrics, false);
   assert.equal(normalizeConfig({ ...config, image_navigate: '/lovelace/e125s-details' }).image_navigate, '/lovelace/e125s-details');
+  assert.equal(normalizeConfig({ ...config, tabs: false, map: false, details: false, show_background: false }).tabs, false);
   for (const candidate of [{ ...config, show_metrics: 'no' }, { ...config, show_presence: 0 },
-    { ...config, image_navigate: 'lovelace/e125s-details' }, { ...config, image_navigate: 7 }]) {
+    { ...config, image_navigate: 'lovelace/e125s-details' }, { ...config, image_navigate: 7 },
+    { ...config, tabs: 'yes' }, { ...config, map: 1 }, { ...config, details: null }, { ...config, show_background: 'off' }]) {
     assert.throws(() => normalizeConfig(candidate));
   }
+});
+
+test('detail entities come from the shared prefix and stay overridable', () => {
+  const ids = vehicleEntities(config);
+  assert.equal(ids.bms_voltage, 'sensor.synthetic_ninebot_e125s_main_bms_voltage');
+  assert.equal(ids.charge_time, 'sensor.synthetic_ninebot_e125s_main_remaining_charge_time');
+  assert.equal(ids.rides_today, 'sensor.synthetic_ninebot_e125s_main_today_ride_count');
+  assert.equal(vehicleEntities({ ...config, entities: { reserve: 'sensor.custom_reserve' } }).reserve, 'sensor.custom_reserve');
+  assert.throws(() => normalizeConfig({ ...config, entities: { reserve: 'binary_sensor.custom_reserve' } }));
 });
 
 test('card locales have matching keys and regional fallbacks', () => {

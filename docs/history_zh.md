@@ -126,16 +126,22 @@ name: E125S
 show_controls: false
 show_metrics: true
 show_presence: true
+show_background: true
+tabs: true
+map: true
+details: true
 image_navigate: /lovelace/REPLACE_WITH_DETAILS_VIEW
 entities:
   range: sensor.REPLACE_WITH_CUSTOM_RANGE
 ```
 
-覆盖项按域校验，域不匹配时卡片报错，而不是静默显示其他设备的数据。可视化编辑器覆盖电池实体、标题、`show_controls`/`show_metrics`/`show_presence` 三个开关以及 `image_navigate` 路径，高级覆盖保留在 YAML 中。
+覆盖项按域校验，域不匹配时卡片报错，而不是静默显示其他设备的数据。可视化编辑器覆盖电池实体、标题、`show_controls`/`show_metrics`/`show_presence`/`tabs`/`map`/`details`/`show_background` 七个开关以及 `image_navigate` 路径，高级覆盖保留在 YAML 中。
 
-卡片为紧凑横向布局：小号环形电量（0–100，低/中/高三色）下方是续航，旁边是车辆图片，再下方一行指标（总里程、今日里程、电池温度、健康评分），随后是在家/外出行和一条细控制栏。缺失、`unknown` 或 `unavailable` 一律显示 **—**，不估算，也不沿用旧读数。
+卡片为紧凑横向布局：小号环形电量（0–100，低/中/高三色）下方是续航，旁边是车辆图片，再下方一行指标（总里程、今日里程、电池温度、健康评分），随后是在家/外出行和一条细控制栏。车辆图片同时作为柔和的背景铺在卡片头部之后。缺失、`unknown` 或 `unavailable` 一律显示 **—**，不估算，也不沿用旧读数。
 
-控制按钮调用这些实体已有的 HA 服务：上锁/解锁、寻车、座桶、刷新。解锁与座桶会先请求确认，调用失败时显示行内提示而不是静默失败。只读卡片设置 `show_controls: false`，`show_metrics: false` 隐藏指标行，`show_presence: false` 隐藏在家/外出行，`image_navigate` 让车辆图片变为仪表盘跳转（例如详情子视图），而不是打开图片详情。卡片自身不发起云端请求：只渲染已有实体状态，仅转发你按下的服务，并且只把位置实体读作在家/外出，不读取坐标或轨迹。标签跟随 HA 语言，支持英语、德语与简体中文，缺失时回退英语。
+开启 `tabs`（默认）后，卡片在原地切换三个面板：**概览**（环形电量、图片、指标、在家/外出）、**地图**（位置实体交给 Home Assistant 自带的地图卡片，只创建一次，状态更新时不重建）和**详情**（BMS 电压、充电循环、剩余充电时间、备用电池、预估续航、健康评分与今日骑行，每行点击打开实体对话框）。`map: false` 或 `details: false` 去掉对应面板，`tabs: false` 只渲染概览——没有面板栏、地图和详情列表。
+
+控制按钮调用这些实体已有的 HA 服务：上锁/解锁、寻车、座桶、刷新。解锁与座桶会先请求确认，调用失败时显示行内提示而不是静默失败。只读卡片设置 `show_controls: false`，`show_metrics: false` 隐藏指标行，`show_presence: false` 隐藏在家/外出行，`show_background: false` 去掉背景图，`image_navigate` 让车辆图片变为仪表盘跳转（例如详情子视图），而不是打开图片详情。卡片自身不发起云端请求：只渲染已有实体状态，仅转发你按下的服务，并且只把位置实体读作在家/外出，不读取坐标或轨迹；地图面板同样通过 HA 自带地图卡片渲染这个位置实体。标签跟随 HA 语言，支持英语、德语与简体中文，缺失时回退英语。寻车与座桶按钮使用为这张卡片绘制的两个内联 SVG 图形，而不是图标字体。
 
 ## 行程摘要与车辆事件
 

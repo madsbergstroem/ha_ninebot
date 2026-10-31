@@ -5,6 +5,8 @@
 - Add the bundled `ninebot-vehicle-card`: battery ring, range, odometer, today's distance, battery temperature, health score, vehicle image, lock/charging/power state and home/away presence, discovered from the main battery entity's shared ID prefix.
 - Offer lock/unlock, find, seat and refresh controls with confirmation for unlock and seat, an inline error on failure, and `show_controls: false` for read-only cards.
 - Compact the vehicle card into a tighter band, let its image navigate to a details view (`image_navigate`) and hide metrics/presence rows (`show_metrics`, `show_presence`).
+- Give the vehicle card a soft image backdrop (`show_background`) and in-place Overview/Map/Details panels (`tabs`, `map`, `details`), with the map card created once and kept across state updates.
+- Draw the find and seat controls as inline SVG glyphs instead of icon-font symbols.
 - Document the vehicle card resource, entity overrides, unknown-value handling and its no-cloud, home/away-only privacy behavior.
 
 ## 2.0.0
