@@ -56,7 +56,7 @@ const CSS = `
 :host{display:block;container-type:inline-size}*{box-sizing:border-box}
 ha-card{position:relative;isolation:isolate;display:block;overflow:hidden;border:1px solid var(--divider-color);border-radius:20px;background:var(--card-background-color);color:var(--primary-text-color)}
 .backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-.backdrop .map-bg{position:absolute;inset:0;opacity:.26;filter:saturate(.9)}.backdrop .map-bg hui-map-card{display:block;height:100%}
+.backdrop .map-bg{position:absolute;inset:0;opacity:.4;filter:saturate(.9)}.backdrop .map-bg hui-map-card{display:block;height:100%}
 .backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--card-background-color) 30%,transparent) 0%,color-mix(in srgb,var(--card-background-color) 86%,transparent) 60%,var(--card-background-color) 100%)}
 .header,.tabs,.panel,.controls,.error{position:relative;z-index:1}
 button{font:inherit}.header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0}
@@ -70,13 +70,12 @@ h2{margin:0;font-size:18px;font-weight:650;letter-spacing:-.025em;line-height:1.
 .tab[aria-selected="true"]{background:color-mix(in srgb,var(--primary-color) 22%,var(--card-background-color));color:var(--primary-text-color)}
 .panel[hidden]{display:none}
 .hero{display:grid;grid-template-columns:104px minmax(0,1fr);align-items:center;gap:6px;min-height:210px;padding:4px 16px 0}
-.gauge-wrap{display:flex;flex-direction:column;align-items:center;min-width:0}.gauge{position:relative;width:92px;height:92px}
-.gauge svg{display:block;width:100%;height:100%;transform:rotate(-90deg)}.gauge circle{fill:none;stroke-width:8}
-.gauge .track{stroke:color-mix(in srgb,var(--secondary-text-color) 14%,transparent)}.gauge .level{stroke:currentColor;stroke-linecap:round;transition:stroke-dashoffset .35s ease}
-.gauge.medium{color:var(--warning-color,#f59e0b)}.gauge.low{color:var(--error-color,#f43f5e)}.gauge.high{color:var(--success-color,#4ade80)}.gauge.unknown{color:var(--disabled-text-color,var(--secondary-text-color))}
-.gauge-value{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:700;letter-spacing:-.055em}.gauge-value small{margin:5px 0 0 2px;font-size:13px;font-weight:600;letter-spacing:0}
-.gauge-label{margin-top:0;color:var(--secondary-text-color);font-size:10px}.range{display:flex;flex-direction:column;align-items:center;margin-top:4px;line-height:1.2}
-.range strong{font-size:22px;font-weight:700;letter-spacing:-.02em}.range span{margin-top:2px;color:var(--secondary-text-color);font-size:10px}
+.readout{display:flex;flex-direction:column;align-items:center;min-width:0}
+.readout .value{display:flex;align-items:baseline;gap:3px;font-size:32px;font-weight:700;letter-spacing:-.055em;line-height:1}
+.readout .value small{margin-bottom:3px;font-size:13px;font-weight:600;letter-spacing:0}
+.readout .label{margin-top:5px;color:var(--secondary-text-color);font-size:10px}
+.chip{display:inline-flex;align-items:center;gap:4px;margin-top:8px;border-radius:999px;padding:4px 9px;background:color-mix(in srgb,var(--secondary-text-color) 10%,transparent);color:var(--secondary-text-color);font-size:10.5px;font-weight:600;white-space:nowrap}
+.chip ha-icon{--mdc-icon-size:13px}
 .vehicle{display:flex;align-items:center;justify-content:center;width:100%;height:194px;min-width:0;padding:0;border:0;border-radius:18px;background:radial-gradient(ellipse at 50% 65%,color-mix(in srgb,var(--primary-color) 12%,transparent),transparent 70%);color:var(--primary-color);cursor:pointer}
 .vehicle img{display:block;width:100%;height:190px;object-fit:contain;transform:scaleX(-1);filter:drop-shadow(0 14px 12px rgb(0 0 0 / .22))}.vehicle ha-icon{--mdc-icon-size:64px;opacity:.5}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:8px 16px 10px}
@@ -248,30 +247,17 @@ export class NinebotVehicleCard extends (globalThis.HTMLElement ?? class {}) {
     }
   }
 
-  buildGauge(labels) {
-    const wrap = element('div', '', 'gauge-wrap');
-    const gauge = element('div', '', 'gauge');
-    gauge.setAttribute('role', 'img');
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 120 120'); svg.setAttribute('aria-hidden', 'true');
-    let level = null;
-    for (const className of ['track', 'level']) {
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', '60'); circle.setAttribute('cy', '60'); circle.setAttribute('r', '52');
-      circle.setAttribute('pathLength', '100'); circle.setAttribute('class', className);
-      circle.setAttribute('stroke-dasharray', '100');
-      if (className === 'level') level = circle;
-      svg.append(circle);
-    }
-    const value = element('div', '', 'gauge-value');
-    const number = element('span'), percent = element('small', '%');
-    value.append(number, percent);
-    gauge.append(svg, value);
-    const range = element('div', '', 'range');
-    const rangeValue = element('strong');
-    range.append(rangeValue, element('span', labels.range));
-    wrap.append(gauge, element('div', labels.battery, 'gauge-label'), range);
-    this.ui.gauge = { gauge, level, number, percent, range: rangeValue };
+  buildReadout(labels) {
+    const wrap = element('div', '', 'readout');
+    const value = element('div', '', 'value');
+    const amount = element('span'), unit = element('small');
+    value.append(amount, unit);
+    const chip = element('span', '', 'chip');
+    const chipText = element('span');
+    chip.append(icon('battery'), chipText);
+    chip.title = labels.battery;
+    wrap.append(value, element('div', labels.range, 'label'), chip);
+    this.ui.readout = { amount, unit, chip, chipText };
     return wrap;
   }
 
@@ -388,7 +374,7 @@ export class NinebotVehicleCard extends (globalThis.HTMLElement ?? class {}) {
     const panels = {};
     const overview = element('div', '', 'panel');
     const hero = element('div', '', 'hero');
-    hero.append(this.buildGauge(labels), this.buildVehicle(labels));
+    hero.append(this.buildReadout(labels), this.buildVehicle(labels));
     overview.append(hero);
     if (this.config.show_metrics !== false) overview.append(this.buildMetrics(labels));
     if (this.config.show_presence !== false) overview.append(this.buildPresence());
@@ -431,7 +417,7 @@ export class NinebotVehicleCard extends (globalThis.HTMLElement ?? class {}) {
     pill.hidden = !status;
     if (status) { pill.textContent = status.text; pill.className = `status ${status.className}`; }
 
-    this.updateGauge();
+    this.updateReadout();
     this.updateVehicle();
     this.updateMetrics();
     this.updatePresence();
@@ -443,16 +429,18 @@ export class NinebotVehicleCard extends (globalThis.HTMLElement ?? class {}) {
     if (this.ui.map) this.ui.map.hass = this._hass;
   }
 
-  updateGauge() {
-    const ui = this.ui.gauge;
+  updateReadout() {
+    const ui = this.ui.readout;
     if (!ui) return;
-    const level = batteryLevel(this.state('battery'));
-    ui.gauge.className = `gauge ${level === null ? 'unknown' : level < 15 ? 'low' : level < 35 ? 'medium' : 'high'}`;
-    ui.gauge.setAttribute('aria-label', `${this.labels().battery}: ${level === null ? '—' : `${Math.round(level)}%`}`);
-    ui.level.setAttribute('stroke-dashoffset', String(100 - (level ?? 0)));
-    ui.number.textContent = level === null ? '—' : String(Math.round(level));
-    ui.percent.hidden = level === null;
-    ui.range.textContent = formatState(this.state('range'), this._hass?.language);
+    const range = this.state('range');
+    const numeric = Number.parseFloat(range?.state);
+    ui.amount.textContent = Number.isFinite(numeric) ? String(Math.round(numeric * 10) / 10) : '—';
+    const unit = range?.attributes?.unit_of_measurement;
+    ui.unit.textContent = Number.isFinite(numeric) && unit ? unit : '';
+    const battery = this.state('battery');
+    const level = Number.parseFloat(battery?.state);
+    ui.chip.hidden = !Number.isFinite(level);
+    if (Number.isFinite(level)) ui.chipText.textContent = `${Math.round(level)}%`;
   }
 
   updateVehicle() {
