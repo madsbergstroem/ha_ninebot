@@ -56,8 +56,8 @@ const CSS = `
 :host{display:block;container-type:inline-size}*{box-sizing:border-box}
 ha-card{position:relative;isolation:isolate;display:block;overflow:hidden;border:1px solid var(--divider-color);border-radius:20px;background:var(--card-background-color);color:var(--primary-text-color)}
 .backdrop{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-.backdrop img{width:100%;height:100%;object-fit:cover;object-position:78% 42%;opacity:.32;filter:blur(7px) saturate(1.15);transform:scale(1.15)}
-.backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--card-background-color) 35%,transparent) 0%,color-mix(in srgb,var(--card-background-color) 88%,transparent) 62%,var(--card-background-color) 100%)}
+.backdrop .map-bg{position:absolute;inset:0;opacity:.26;filter:saturate(.9)}.backdrop .map-bg hui-map-card{display:block;height:100%}
+.backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--card-background-color) 30%,transparent) 0%,color-mix(in srgb,var(--card-background-color) 86%,transparent) 60%,var(--card-background-color) 100%)}
 .header,.tabs,.panel,.controls,.error{position:relative;z-index:1}
 button{font:inherit}.header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 0}
 .eyebrow{margin:0 0 2px;color:var(--secondary-text-color);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
@@ -76,7 +76,7 @@ h2{margin:0;font-size:18px;font-weight:650;letter-spacing:-.025em;line-height:1.
 .gauge.medium{color:var(--warning-color,#f59e0b)}.gauge.low{color:var(--error-color,#f43f5e)}.gauge.high{color:var(--success-color,#4ade80)}.gauge.unknown{color:var(--disabled-text-color,var(--secondary-text-color))}
 .gauge-value{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:700;letter-spacing:-.055em}.gauge-value small{margin:5px 0 0 2px;font-size:13px;font-weight:600;letter-spacing:0}
 .gauge-label{margin-top:0;color:var(--secondary-text-color);font-size:10px}.range{display:flex;flex-direction:column;align-items:center;margin-top:4px;line-height:1.2}
-.range strong{font-size:15px;font-weight:700;letter-spacing:-.02em}.range span{margin-top:1px;color:var(--secondary-text-color);font-size:9px}
+.range strong{font-size:22px;font-weight:700;letter-spacing:-.02em}.range span{margin-top:2px;color:var(--secondary-text-color);font-size:10px}
 .vehicle{display:flex;align-items:center;justify-content:center;width:100%;height:194px;min-width:0;padding:0;border:0;border-radius:18px;background:radial-gradient(ellipse at 50% 65%,color-mix(in srgb,var(--primary-color) 12%,transparent),transparent 70%);color:var(--primary-color);cursor:pointer}
 .vehicle img{display:block;width:100%;height:190px;object-fit:contain;transform:scaleX(-1);filter:drop-shadow(0 14px 12px rgb(0 0 0 / .22))}.vehicle ha-icon{--mdc-icon-size:64px;opacity:.5}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:8px 16px 10px}
@@ -229,21 +229,22 @@ export class NinebotVehicleCard extends (globalThis.HTMLElement ?? class {}) {
   }
 
   ensureMap() {
-    const host = this.ui.mapHost;
-    if (!host) return;
     const entity = this.ids.location;
-    if (this.ui.mapEntity === entity) return;
-    this.ui.mapEntity = entity;
-    this.ui.map = null;
-    host.replaceChildren();
-    if (globalThis.customElements?.get('hui-map-card')) {
-      const map = document.createElement('hui-map-card');
-      map.setConfig({ entities: [{ entity }] });
-      map.hass = this._hass;
-      host.append(map);
-      this.ui.map = map;
-    } else {
-      host.append(element('p', this.labels().map_placeholder, 'map-note'));
+    for (const host of [this.ui.mapHost, this.ui.mapBackdropHost]) {
+      if (!host) continue;
+      if (host.dataset.mapEntity === entity) continue;
+      host.dataset.mapEntity = entity;
+      host.replaceChildren();
+      if (!entity) continue;
+      if (globalThis.customElements?.get('hui-map-card')) {
+        const map = document.createElement('hui-map-card');
+        map.setConfig({ entities: [{ entity }] });
+        map.hass = this._hass;
+        host.append(map);
+        if (host === this.ui.mapHost) this.ui.map = map;
+      } else if (host === this.ui.mapHost) {
+        host.append(element('p', this.labels().map_placeholder, 'map-note'));
+      }
     }
   }
 
@@ -354,11 +355,10 @@ export class NinebotVehicleCard extends (globalThis.HTMLElement ?? class {}) {
 
     if (this.config.show_background !== false) {
       const backdrop = element('div', '', 'backdrop');
-      const picture = document.createElement('img');
-      picture.alt = ''; picture.setAttribute('aria-hidden', 'true');
-      backdrop.append(picture);
+      const mapBg = element('div', '', 'map-bg');
+      backdrop.append(mapBg);
       card.append(backdrop);
-      this.ui.backdrop = picture;
+      this.ui.mapBackdropHost = mapBg;
     }
 
     const header = element('header', '', 'header');
@@ -438,16 +438,8 @@ export class NinebotVehicleCard extends (globalThis.HTMLElement ?? class {}) {
     this.updateDetails();
     this.updateControls();
 
-    const backdrop = this.ui.backdrop;
-    if (backdrop) {
-      const picture = this.state('image')?.attributes?.entity_picture;
-      const src = typeof picture === 'string' && picture.startsWith('/') ? picture : '';
-      if (backdrop.getAttribute('src') !== src) {
-        if (src) backdrop.setAttribute('src', src); else backdrop.removeAttribute('src');
-      }
-      backdrop.parentElement.hidden = !src;
-    }
     this.ui.error.hidden = !this.actionError;
+    this.ensureMap();
     if (this.ui.map) this.ui.map.hass = this._hass;
   }
 
