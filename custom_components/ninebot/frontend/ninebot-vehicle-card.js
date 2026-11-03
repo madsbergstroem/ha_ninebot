@@ -46,6 +46,10 @@ const DETAIL_ROWS = Object.freeze([
   ['range_ai', 'map-marker-path', 'range_ai', 1],
   ['battery_health', 'heart-pulse', 'health', 0],
   ['rides_today', 'bike-fast', 'rides_today', 0],
+  ['month_mileage', 'map-marker-distance', 'month_mileage', 1],
+  ['month_rides', 'bike-fast', 'month_rides', 0],
+  ['charging_power', 'flash', 'charging_power', 0],
+  ['month_energy', 'lightning-bolt', 'month_energy', 1],
 ]);
 
 const CSS = `

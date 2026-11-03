@@ -20,6 +20,10 @@ export const ENTITY_SLOTS = Object.freeze({
   reserve: { domain: 'sensor', suffix: 'emergency_battery' },
   range_ai: { domain: 'sensor', suffix: 'range_ai' },
   rides_today: { domain: 'sensor', suffix: 'today_ride_count' },
+  month_mileage: { domain: 'sensor', suffix: 'month_mileage' },
+  month_rides: { domain: 'sensor', suffix: 'month_ride_count' },
+  charging_power: { domain: 'sensor', suffix: 'charging_power' },
+  month_energy: { domain: 'sensor', suffix: 'month_energy' },
 });
 
 export const VEHICLE_LABELS = {
@@ -37,6 +41,7 @@ export const VEHICLE_LABELS = {
     editor_tabs: 'Show tabs', editor_map: 'Show map tab', editor_details: 'Show details tab', editor_background: 'Show vehicle background',
     voltage: 'BMS voltage', cycles: 'Charge cycles', charge_time: 'Remaining charge', reserve: 'Reserve battery',
     range_ai: 'Estimated range', rides_today: 'Rides today',
+    month_mileage: 'Monthly distance', month_rides: 'Rides (month)', charging_power: 'Charging power', month_energy: 'Monthly energy',
     editor_note: 'Related Ninebot entities are discovered from the shared entity-ID prefix. Advanced overrides remain YAML-editable.',
   },
   de: {
@@ -53,6 +58,7 @@ export const VEHICLE_LABELS = {
     editor_tabs: 'Tabs anzeigen', editor_map: 'Karten-Tab anzeigen', editor_details: 'Details-Tab anzeigen', editor_background: 'Fahrzeug-Hintergrund anzeigen',
     voltage: 'BMS-Spannung', cycles: 'Ladezyklen', charge_time: 'Restladezeit', reserve: 'Reserveakku',
     range_ai: 'Geschätzte Reichweite', rides_today: 'Fahrten heute',
+    month_mileage: 'Monatskilometer', month_rides: 'Fahrten (Monat)', charging_power: 'Ladeleistung', month_energy: 'Monatsenergie',
     editor_note: 'Die zugehörigen Ninebot-Entities werden über den gemeinsamen Entity-ID-Präfix gefunden. Erweiterte Overrides bleiben in YAML möglich.',
   },
   'zh-Hans': {
