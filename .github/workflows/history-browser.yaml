@@ -30,6 +30,11 @@ jobs:
           BROWSER_TEST_DEPS: ${{ runner.temp }}/ninebot-browser
           BROWSER_TEST_OUTPUT: ${{ runner.temp }}/ninebot-map-smoke
         run: node tests/browser/history-map.mjs
+      - name: Render synthetic vehicle status card
+        env:
+          BROWSER_TEST_DEPS: ${{ runner.temp }}/ninebot-browser
+          BROWSER_TEST_OUTPUT: ${{ runner.temp }}/ninebot-map-smoke
+        run: node tests/browser/vehicle-card.mjs
       - name: Keep synthetic render evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

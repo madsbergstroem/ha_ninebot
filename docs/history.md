@@ -107,6 +107,33 @@ Coordinates are plotted as received: CRS is unverified, with no automatic WGS/GC
 
 Private projections are cleared on user/connection/date/vehicle scope change, revoked access and card removal. Full trails/raw do not enter HA entity attributes, Recorder, diagnostics or localStorage. Explicit GPS Action responses can still be recorded in automation traces; protect them.
 
+## Add the vehicle status card
+
+1. In **Dashboard → Resources**, add `/ninebot-static/ninebot-vehicle-card.js` as **JavaScript module**. It is a separate resource from the history card and can be added independently.
+2. Add a manual card and select your vehicle's main battery sensor:
+
+```yaml
+type: custom:ninebot-vehicle-card
+entity: sensor.REPLACE_WITH_VEHICLE_battery
+```
+
+`entity` must be the main battery sensor whose ID ends in `_battery`. Every other slot is derived from that entity's shared object-ID prefix: vehicle image, range, odometer, today's distance, battery temperature, health score, location, lock, charging/power binary sensors and the find/seat/refresh buttons. Optional overrides stay available in YAML:
+
+```yaml
+type: custom:ninebot-vehicle-card
+entity: sensor.REPLACE_WITH_VEHICLE_battery
+name: E125S
+show_controls: false
+entities:
+  range: sensor.REPLACE_WITH_CUSTOM_RANGE
+```
+
+Overrides are validated per domain, so a wrong domain fails the card instead of silently showing another device's data. The visual editor covers the battery entity, title and controls; advanced overrides remain YAML-editable.
+
+The card shows a battery ring clamped to 0–100 with low/medium/high coloring, range, odometer, today's distance, battery temperature, health score, the vehicle image, lock/charging/power state and home/away presence. Missing, `unknown` or `unavailable` states render as **—**; no value is estimated or carried over from an older reading.
+
+Controls call the existing HA services of those entities: lock/unlock, find, seat compartment and refresh. Unlock and seat ask for confirmation first, and a failed call shows an inline message rather than a silent no-op. Set `show_controls: false` for a read-only card. The card makes no cloud requests of its own: it renders existing entity states, forwards only the services you press, and reads the location entity as home/away only — never coordinates or trails. Labels follow the HA language for English, German and Simplified Chinese, with English fallback.
+
 ## Ride summaries and vehicle events
 
 Numeric day/month/latest-trip sensors retain their meaningful identities, units and history. Use **average consumption** for Wh/km; today/yesterday averages divide energy by distance from the same complete ride set, never mix a chart distance with partial-list energy. No rides or zero distance yields no average. Monthly/today/yesterday keep distance, trip count, duration, energy and average consumption. Latest trip is one record, with distance, duration, energy, average consumption and maximum/average speed; it does not need a redundant count-of-one sensor.
